@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced MySQL/MariaDB Settings Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-wrap -mx-3">
+            <div class="w-full md:w-2/3 px-3">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                    <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">MySQL/MariaDB Settings Calculator</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="totalMemory" class="block text-sm font-medium text-gray-700 mb-1">Total Server Memory (GB)</label>
+                            <input type="number" id="totalMemory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter total memory">
+                        </div>
+                        <div>
+                            <label for="reservedMemory" class="block text-sm font-medium text-gray-700 mb-1">Reserved Memory for OS (GB)</label>
+                            <input type="number" id="reservedMemory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter reserved memory">
+                        </div>
+                        <div>
+                            <label for="otherTasksMemory" class="block text-sm font-medium text-gray-700 mb-1">Memory for Other Tasks (GB)</label>
+                            <input type="number" id="otherTasksMemory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter memory for other tasks">
+                        </div>
+                    </div>
+                    <div id="error" class="text-red-500 mb-4 hidden"></div>
+                    <div id="results" class="mt-6 bg-gray-50 p-4 rounded-md"></div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">Frequently Asked Questions</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">What is innodb_buffer_pool_size?</h3>
+                            <p>The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to cache data and indexes of its tables.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">How is max_connections calculated?</h3>
+                            <p>In this calculator, max_connections is estimated as 100 connections per GB of available memory. However, the actual optimal value depends on your specific workload and server configuration.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">Why is some memory reserved for the OS?</h3>
+                            <p>Reserving memory for the OS ensures that the system has enough resources to run smoothly, preventing potential slowdowns or crashes due to memory exhaustion.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">Are these settings optimal for all scenarios?</h3>
+                            <p>No, these are general recommendations. The optimal settings can vary greatly depending on your specific use case, workload, and hardware. It's always best to monitor your system's performance and adjust accordingly.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="w-full md:w-1/3 px-3">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">Useful Links</h2>
+                    <h3 class="text-lg font-semibold mb-2">MySQL Tutorials</h3>
+                    <ul class="list-disc pl-5 mb-4">
+                        <li><a href="https://dev.mysql.com/doc/refman/8.0/en/tutorial.html" class="text-blue-500 hover:underline" target="_blank">MySQL Tutorial</a></li>
+                        <li><a href="https://www.w3schools.com/mysql/" class="text-blue-500 hover:underline" target="_blank">W3Schools MySQL Tutorial</a></li>
+                    </ul>
+                    <h3 class="text-lg font-semibold mb-2">MariaDB Tutorials</h3>
+                    <ul class="list-disc pl-5 mb-4">
+                        <li><a href="https://mariadb.com/kb/en/training-tutorials/" class="text-blue-500 hover:underline" target="_blank">MariaDB Tutorials</a></li>
+                        <li><a href="https://www.tutorialspoint.com/mariadb/" class="text-blue-500 hover:underline" target="_blank">TutorialsPoint MariaDB Tutorial</a></li>
+                    </ul>
+                    <h3 class="text-lg font-semibold mb-2">Important Links</h3>
+                    <ul class="list-disc pl-5 mb-4">
+                        <li><a href="https://dev.mysql.com/doc/" class="text-blue-500 hover:underline" target="_blank">MySQL Documentation</a></li>
+                        <li><a href="https://mariadb.com/kb/en/documentation/" class="text-blue-500 hover:underline" target="_blank">MariaDB Documentation</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-white py-4 mt-8">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="text-sm text-gray-500">
+                © <span id="currentYear"></span> Created by <a href="https://gkanev.com" class="text-blue-500 hover:underline" target="_blank">Gabriel Kanev</a>
+            </div>
+            <div class="text-sm text-gray-500">
+                Open source on <a href="https://github.com/MrGKanev/MySQL-MariaDB-Settings-Calculator" class="text-blue-500 hover:underline" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function calculateSettings() {
+            const totalMemory = parseFloat(document.getElementById('totalMemory').value) || 0;
+            const reservedMemory = parseFloat(document.getElementById('reservedMemory').value) || 0;
+            const otherTasksMemory = parseFloat(document.getElementById('otherTasksMemory').value) || 0;
+
+            const errorElement = document.getElementById('error');
+            if (reservedMemory + otherTasksMemory + 1 > totalMemory) {
+                errorElement.textContent = "Error: Reserved memory + Other tasks memory + 1 GB cannot exceed total server memory.";
+                errorElement.classList.remove('hidden');
+                document.getElementById('results').innerHTML = '';
+                return;
+            }
+            errorElement.classList.add('hidden');
+
+            const availableMemory = Math.max(0, totalMemory - reservedMemory - otherTasksMemory);
+            const totalMemoryBytes = availableMemory * 1024 * 1024 * 1024;
+
+            const innodb_buffer_pool_size = Math.floor(totalMemoryBytes * 0.7);
+            const max_connections = Math.floor(availableMemory * 100);
+            const key_buffer_size = Math.floor(totalMemoryBytes * 0.1);
+            const innodb_log_file_size = Math.floor(innodb_buffer_pool_size * 0.25);
+            const query_cache_size = Math.floor(totalMemoryBytes * 0.05);
+            const tmp_table_size = Math.floor(totalMemoryBytes * 0.05);
+            const innodb_log_buffer_size = Math.min(Math.floor(totalMemoryBytes * 0.01), 8 * 1024 * 1024);
+
+            const results = `
+                <h2 class="text-xl font-semibold mb-3 text-blue-600">Memory Allocation</h2>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div>Total Server Memory:</div><div>${formatBytes(totalMemory * 1024 * 1024 * 1024)}</div>
+                    <div>Reserved for OS:</div><div>${formatBytes(reservedMemory * 1024 * 1024 * 1024)}</div>
+                    <div>Other Tasks:</div><div>${formatBytes(otherTasksMemory * 1024 * 1024 * 1024)}</div>
+                    <div class="font-semibold">Available for MySQL/MariaDB:</div><div class="font-semibold">${formatBytes(availableMemory * 1024 * 1024 * 1024)}</div>
+                </div>
+                <h2 class="text-xl font-semibold mb-3 text-blue-600">Recommended Settings</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_buffer_pool_size" target="_blank" class="text-blue-500 hover:underline">innodb_buffer_pool_size</a> =</div><div>${formatBytes(innodb_buffer_pool_size)}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections" target="_blank" class="text-blue-500 hover:underline">max_connections</a> =</div><div>${max_connections}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_key_buffer_size" target="_blank" class="text-blue-500 hover:underline">key_buffer_size</a> =</div><div>${formatBytes(key_buffer_size)}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_log_file_size" target="_blank" class="text-blue-500 hover:underline">innodb_log_file_size</a> =</div><div>${formatBytes(innodb_log_file_size)}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_query_cache_size" target="_blank" class="text-blue-500 hover:underline">query_cache_size</a> =</div><div>${formatBytes(query_cache_size)}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_tmp_table_size" target="_blank" class="text-blue-500 hover:underline">tmp_table_size</a> =</div><div>${formatBytes(tmp_table_size)}</div>
+                    <div><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_log_buffer_size" target="_blank" class="text-blue-500 hover:underline">innodb_log_buffer_size</a> =</div><div>${formatBytes(innodb_log_buffer_size)}</div>
+                </div>
+                <p class="mt-4 text-sm text-gray-600">Note: These are general recommendations. Adjust based on your specific needs and workload.</p>
+            `;
+
+            document.getElementById('results').innerHTML = results;
+        }
+
+        function formatBytes(bytes) {
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+            return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+        }
+
+        const debouncedCalculate = debounce(calculateSettings, 300);
+
+        document.getElementById('totalMemory').addEventListener('input', debouncedCalculate);
+        document.getElementById('reservedMemory').addEventListener('input', debouncedCalculate);
+        document.getElementById('otherTasksMemory').addEventListener('input', debouncedCalculate);
+
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Initial calculation
+        calculateSettings();
+    </script>
+</body>
+</html>
