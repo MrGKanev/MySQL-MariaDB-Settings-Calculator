@@ -64,10 +64,9 @@ The calculator uses the following methods to determine the recommended settings:
    ```
 
 5. innodb_log_file_size: 25% of innodb_buffer_pool_size
-
-   ```
-   innodb_log_file_size = innodb_buffer_pool_size * 0.25
-   ```
+  ```
+  innodb_log_file_size = innodb_buffer_pool_size * 0.25
+  ```
 
 6. query_cache_size: 5% of available memory
 
@@ -147,7 +146,7 @@ Please ensure your code adheres to the existing style and that you've tested you
 - Continuously watch for changes in the `style.css` file, updating the output file whenever changes occur.
 
 ```bash
-npx tailwindcss -i ./src/output.css -o ./src/output.css --watch
+npx tailwindcss -i ./src/input.css -o ./src/output.css --watch
 ```
 
 - Generate a minified version of the CSS
