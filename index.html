@@ -4,18 +4,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MySQL/MariaDB Settings Calculator - Gabriel Kanev</title>
+    <title>MySQL/MariaDB Performance Calculator - Optimize Database Settings | Gabriel Kanev</title>
     <meta name="description"
-        content="Calculate optimal MySQL and MariaDB settings based on your server's memory. Get recommendations for buffer sizes, connections, and more.">
-    <meta name="keywords" content="MySQL, MariaDB, database settings, performance tuning, memory allocation">
+        content="Free online tool to optimize MySQL and MariaDB settings based on your server's memory. Get tailored recommendations for buffer sizes, connections, and configuration parameters for maximum database performance.">
+    <meta name="keywords"
+        content="MySQL optimizer, MariaDB performance, database tuning, my.cnf generator, innodb buffer size calculator, max connections calculator, MySQL configuration, MariaDB settings, database performance tuning">
     <meta name="author" content="Gabriel Kanev">
-    <meta property="og:title" content="MySQL/MariaDB Settings Calculator">
-    <meta property="og:description" content="Optimize your MySQL/MariaDB settings with this easy-to-use calculator.">
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://gkanev.com/mysql-calculator">
+    <meta property="og:title" content="MySQL/MariaDB Performance Settings Calculator">
+    <meta property="og:description"
+        content="Free tool to optimize MySQL/MariaDB for your specific server. Generate optimal my.cnf configurations instantly.">
+    <meta property="og:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png">
+
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="MySQL/MariaDB Settings Calculator">
-    <meta name="twitter:description" content="Optimize your MySQL/MariaDB settings with this easy-to-use calculator.">
+    <meta name="twitter:url" content="https://gkanev.com/mysql-calculator">
+    <meta name="twitter:title" content="MySQL/MariaDB Performance Settings Calculator">
+    <meta name="twitter:description"
+        content="Generate optimized MySQL/MariaDB configurations for your server in seconds. Free online configuration tool.">
+    <meta name="twitter:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png">
+
+    <!-- Canonical URL -->
+    <meta rel="canonical" href="https://gkanev.com/mysql-calculator">
+
+    <!-- Additional SEO Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+    <meta name="theme-color" content="#3b82f6">
+
+    <!-- Structured Data / Schema.org -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "MySQL/MariaDB Settings Calculator",
+      "url": "https://gkanev.com/mysql-calculator",
+      "description": "Free online tool to calculate optimal MySQL and MariaDB settings based on your server memory.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "creator": {
+        "@type": "Person",
+        "name": "Gabriel Kanev",
+        "url": "https://gkanev.com"
+      }
+    }
+    </script>
+
     <link href="assets/style.min.css" rel="stylesheet">
 </head>
 
@@ -25,6 +68,21 @@
             <div class="w-full md:w-2/3 px-3">
                 <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
                     <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">MySQL/MariaDB Settings Calculator</h1>
+                    <div class="mt-6 mb-4">
+                        <label for="workloadTemplate" class="block text-sm font-medium text-zinc-700 mb-1">Workload
+                            Template</label>
+                        <select id="workloadTemplate"
+                            class="block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <option value="custom">Custom Configuration</option>
+                            <option value="oltp">OLTP (Online Transaction Processing)</option>
+                            <option value="olap">OLAP (Online Analytical Processing)</option>
+                            <option value="mixed">Mixed Workload</option>
+                            <option value="webserver">Web Server</option>
+                            <option value="smallserver">Small VPS Server</option>
+                        </select>
+                        <p class="mt-1 text-sm text-zinc-500">Select a predefined template or customize your own
+                            settings.</p>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
                             <label for="totalMemory" class="block text-sm font-medium text-zinc-700 mb-1">Total Server

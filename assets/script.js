@@ -1,3 +1,60 @@
+// Global variables to store settings for use across functions
+let globalSettings = {};
+
+// Workload template definitions
+const workloadTemplates = {
+  oltp: {
+    // Online Transaction Processing - optimized for many small transactions
+    innodb_buffer_pool_percentage: 0.7, // 70% of available memory
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.05, // 5% of available memory
+    max_connections_per_gb: 150, // Higher connection count
+    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
+    innodb_io_capacity_per_gb: 100, // Standard IO capacity
+  },
+  olap: {
+    // Online Analytical Processing - optimized for complex queries
+    innodb_buffer_pool_percentage: 0.8, // 80% of available memory
+    innodb_log_file_size_ratio: 0.2, // 20% of buffer pool
+    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability
+    query_cache_size_percentage: 0, // Disable query cache for OLAP
+    max_connections_per_gb: 50, // Fewer connections
+    sort_buffer_size_percentage: 0.03, // Larger sort buffers
+    innodb_io_capacity_per_gb: 150, // Higher IO capacity
+  },
+  mixed: {
+    // Balanced settings for mixed workloads
+    innodb_buffer_pool_percentage: 0.75, // 75% of available memory
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.03, // 3% of available memory
+    max_connections_per_gb: 100, // Balance connections
+    sort_buffer_size_percentage: 0.02, // Medium sort buffers
+    innodb_io_capacity_per_gb: 120, // Balanced IO capacity
+  },
+  webserver: {
+    // Optimized for web applications with database
+    innodb_buffer_pool_percentage: 0.65, // 65% of available memory (leave more for web server)
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.05, // 5% for frequent similar queries
+    max_connections_per_gb: 120, // Higher connection count for web traffic
+    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
+    innodb_io_capacity_per_gb: 80, // Standard IO capacity
+  },
+  smallserver: {
+    // Optimized for small VPS environments
+    innodb_buffer_pool_percentage: 0.5, // Only 50% of available memory
+    innodb_log_file_size_ratio: 0.15, // Smaller log files
+    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability
+    query_cache_size_percentage: 0.03, // Small query cache
+    max_connections_per_gb: 80, // Limited connections
+    sort_buffer_size_percentage: 0.01, // Very small sort buffers
+    innodb_io_capacity_per_gb: 50, // Lower IO capacity for shared resources
+  },
+};
+
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -9,9 +66,6 @@ function debounce(func, wait) {
     timeout = setTimeout(later, wait);
   };
 }
-
-// Global variables to store settings for use across functions
-let globalSettings = {};
 
 function calculateSettings() {
   const totalMemory =
@@ -36,33 +90,27 @@ function calculateSettings() {
   );
   const totalMemoryBytes = availableMemory * 1024 * 1024 * 1024;
 
-  const innodb_buffer_pool_size = Math.floor(totalMemoryBytes * 0.7);
-  const max_connections = Math.floor(availableMemory * 100);
-  const key_buffer_size = Math.floor(totalMemoryBytes * 0.1);
-  const innodb_log_file_size = Math.floor(innodb_buffer_pool_size * 0.25);
-  const query_cache_size = Math.floor(totalMemoryBytes * 0.05);
-  const tmp_table_size = Math.floor(totalMemoryBytes * 0.05);
-  const innodb_log_buffer_size = Math.min(
+  let innodb_buffer_pool_size = Math.floor(totalMemoryBytes * 0.7);
+  let max_connections = Math.floor(availableMemory * 100);
+  let key_buffer_size = Math.floor(totalMemoryBytes * 0.1);
+  let innodb_log_file_size = Math.floor(innodb_buffer_pool_size * 0.25);
+  let query_cache_size = Math.floor(totalMemoryBytes * 0.05);
+  let tmp_table_size = Math.floor(totalMemoryBytes * 0.05);
+  let innodb_log_buffer_size = Math.min(
     Math.floor(totalMemoryBytes * 0.01),
     8 * 1024 * 1024
   );
 
   // New settings
-  const innodb_flush_log_at_trx_commit = 1;
+  let innodb_flush_log_at_trx_commit = 1;
   const innodb_flush_method = "O_DIRECT";
   const innodb_file_per_table = 1;
-  const innodb_io_capacity = Math.floor(availableMemory * 100);
+  let innodb_io_capacity = Math.floor(availableMemory * 100);
   const innodb_read_io_threads = 4;
   const innodb_write_io_threads = 4;
   const innodb_thread_concurrency = 0;
-  const sort_buffer_size = Math.min(
-    Math.floor(totalMemoryBytes * 0.02),
-    262144
-  );
-  const read_buffer_size = Math.min(
-    Math.floor(totalMemoryBytes * 0.01),
-    262144
-  );
+  let sort_buffer_size = Math.min(Math.floor(totalMemoryBytes * 0.02), 262144);
+  let read_buffer_size = Math.min(Math.floor(totalMemoryBytes * 0.01), 262144);
   const read_rnd_buffer_size = Math.min(
     Math.floor(totalMemoryBytes * 0.01),
     524288
@@ -71,6 +119,31 @@ function calculateSettings() {
     Math.floor(totalMemoryBytes * 0.01),
     262144
   );
+
+  // Apply template settings if available
+  const template = globalSettings.templateSettings;
+  if (template) {
+    // Override the default calculations with template settings
+    innodb_buffer_pool_size = Math.floor(
+      totalMemoryBytes * template.innodb_buffer_pool_percentage
+    );
+    innodb_log_file_size = Math.floor(
+      innodb_buffer_pool_size * template.innodb_log_file_size_ratio
+    );
+    query_cache_size = Math.floor(
+      totalMemoryBytes * template.query_cache_size_percentage
+    );
+    max_connections = Math.floor(
+      availableMemory * template.max_connections_per_gb
+    );
+    sort_buffer_size = Math.floor(
+      totalMemoryBytes * template.sort_buffer_size_percentage
+    );
+    innodb_io_capacity = Math.floor(
+      availableMemory * template.innodb_io_capacity_per_gb
+    );
+    innodb_flush_log_at_trx_commit = template.innodb_flush_log_at_trx_commit;
+  }
 
   const results = `
         <h2 class="text-xl font-semibold mb-3 text-blue-600">Memory Allocation</h2>
@@ -175,34 +248,6 @@ function formatBytes(bytes) {
   const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
   return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
 }
-
-const debouncedCalculate = debounce(calculateSettings, 300);
-
-function syncSliderAndInput(sliderId, inputId, max) {
-  const slider = document.getElementById(sliderId);
-  const input = document.getElementById(inputId);
-
-  slider.addEventListener("input", function () {
-    input.value = this.value;
-    debouncedCalculate();
-  });
-
-  input.addEventListener("input", function () {
-    let value = parseFloat(this.value);
-    if (isNaN(value)) value = 0;
-    if (value > max) value = max;
-    this.value = value;
-    slider.value = value;
-    debouncedCalculate();
-  });
-}
-
-syncSliderAndInput("totalMemorySlider", "totalMemory", 128);
-syncSliderAndInput("reservedMemorySlider", "reservedMemory", 16);
-syncSliderAndInput("otherTasksMemorySlider", "otherTasksMemory", 16);
-
-// Set current year in footer
-document.getElementById("currentYear").textContent = new Date().getFullYear();
 
 // Function to generate my.cnf file
 function generateMyCnfFile() {
@@ -565,6 +610,45 @@ function calculatePerformanceScore() {
     .querySelector("ul").innerHTML = recommendationsHTML;
 }
 
+const debouncedCalculate = debounce(calculateSettings, 300);
+
+function syncSliderAndInput(sliderId, inputId, max) {
+  const slider = document.getElementById(sliderId);
+  const input = document.getElementById(inputId);
+
+  slider.addEventListener("input", function () {
+    input.value = this.value;
+    debouncedCalculate();
+  });
+
+  input.addEventListener("input", function () {
+    let value = parseFloat(this.value);
+    if (isNaN(value)) value = 0;
+    if (value > max) value = max;
+    this.value = value;
+    slider.value = value;
+    debouncedCalculate();
+  });
+}
+
+// Add event listener for template selection
+document
+  .getElementById("workloadTemplate")
+  .addEventListener("change", function () {
+    const templateName = this.value;
+
+    if (templateName === "custom") {
+      // Do nothing, keep current custom settings
+      globalSettings.templateSettings = null;
+    } else {
+      // Apply template settings
+      globalSettings.templateSettings = workloadTemplates[templateName];
+    }
+
+    // Recalculate with the new template settings
+    calculateSettings();
+  });
+
 // Event listeners for the buttons
 document
   .getElementById("generateConfigBtn")
@@ -575,6 +659,14 @@ document
 document
   .getElementById("downloadConfigBtn")
   .addEventListener("click", downloadConfigFile);
+
+// Initialize sliders
+syncSliderAndInput("totalMemorySlider", "totalMemory", 128);
+syncSliderAndInput("reservedMemorySlider", "reservedMemory", 16);
+syncSliderAndInput("otherTasksMemorySlider", "otherTasksMemory", 16);
+
+// Set current year in footer
+document.getElementById("currentYear").textContent = new Date().getFullYear();
 
 // Initial calculation
 calculateSettings();
