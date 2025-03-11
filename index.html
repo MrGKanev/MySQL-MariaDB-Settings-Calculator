@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MySQL/MariaDB Settings Calculator - Gabriel Kanev</title>
-    <meta name="description" content="Calculate optimal MySQL and MariaDB settings based on your server's memory. Get recommendations for buffer sizes, connections, and more.">
+    <meta name="description"
+        content="Calculate optimal MySQL and MariaDB settings based on your server's memory. Get recommendations for buffer sizes, connections, and more.">
     <meta name="keywords" content="MySQL, MariaDB, database settings, performance tuning, memory allocation">
     <meta name="author" content="Gabriel Kanev">
     <meta property="og:title" content="MySQL/MariaDB Settings Calculator">
@@ -16,7 +18,8 @@
     <meta name="twitter:description" content="Optimize your MySQL/MariaDB settings with this easy-to-use calculator.">
     <link href="assets/style.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 min-h-screen py-8">
+
+<body class="bg-zinc-100 min-h-dvh py-8">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap -mx-3">
             <div class="w-full md:w-2/3 px-3">
@@ -24,45 +27,63 @@
                     <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">MySQL/MariaDB Settings Calculator</h1>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
-                            <label for="totalMemory" class="block text-sm font-medium text-gray-700 mb-1">Total Server Memory (GB)</label>
-                            <input type="range" id="totalMemorySlider" min="1" max="128" value="1" class="w-full" aria-labelledby="totalMemoryLabel">
-                            <input type="number" id="totalMemory" value="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter total memory" aria-labelledby="totalMemoryLabel">
+                            <label for="totalMemory" class="block text-sm font-medium text-zinc-700 mb-1">Total Server
+                                Memory (GB)</label>
+                            <input type="range" id="totalMemorySlider" min="1" max="128" value="1" class="w-full"
+                                aria-labelledby="totalMemoryLabel">
+                            <input type="number" id="totalMemory" value="1"
+                                class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                placeholder="Enter total memory" aria-labelledby="totalMemoryLabel">
                             <span id="totalMemoryLabel" class="sr-only">Total Server Memory in GB</span>
                         </div>
                         <div>
-                            <label for="reservedMemory" class="block text-sm font-medium text-gray-700 mb-1">Reserved Memory for OS (GB)</label>
-                            <input type="range" id="reservedMemorySlider" min="0" max="16" value="0" class="w-full" aria-labelledby="reservedMemoryLabel">
-                            <input type="number" id="reservedMemory" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter reserved memory" aria-labelledby="reservedMemoryLabel">
+                            <label for="reservedMemory" class="block text-sm font-medium text-zinc-700 mb-1">Reserved
+                                Memory for OS (GB)</label>
+                            <input type="range" id="reservedMemorySlider" min="0" max="16" value="0" class="w-full"
+                                aria-labelledby="reservedMemoryLabel">
+                            <input type="number" id="reservedMemory" value="0"
+                                class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                placeholder="Enter reserved memory" aria-labelledby="reservedMemoryLabel">
                             <span id="reservedMemoryLabel" class="sr-only">Reserved Memory for OS in GB</span>
                         </div>
                         <div>
-                            <label for="otherTasksMemory" class="block text-sm font-medium text-gray-700 mb-1">Memory for Other Tasks (GB)</label>
-                            <input type="range" id="otherTasksMemorySlider" min="0" max="16" value="0" class="w-full" aria-labelledby="otherTasksMemoryLabel">
-                            <input type="number" id="otherTasksMemory" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Enter memory for other tasks" aria-labelledby="otherTasksMemoryLabel">
+                            <label for="otherTasksMemory" class="block text-sm font-medium text-zinc-700 mb-1">Memory
+                                for Other Tasks (GB)</label>
+                            <input type="range" id="otherTasksMemorySlider" min="0" max="16" value="0" class="w-full"
+                                aria-labelledby="otherTasksMemoryLabel">
+                            <input type="number" id="otherTasksMemory" value="0"
+                                class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                placeholder="Enter memory for other tasks" aria-labelledby="otherTasksMemoryLabel">
                             <span id="otherTasksMemoryLabel" class="sr-only">Memory for Other Tasks in GB</span>
                         </div>
                     </div>
                     <div id="error" class="text-red-500 mb-4 hidden"></div>
-                    <div id="results" class="mt-6 bg-gray-50 p-4 rounded-md"></div>
+                    <div id="results" class="mt-6 bg-zinc-50 p-4 rounded-md"></div>
                 </div>
                 <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
                     <h2 class="text-2xl font-bold mb-4 text-blue-600">Frequently Asked Questions</h2>
                     <div class="space-y-4">
                         <div>
                             <h3 class="text-lg font-semibold">What is innodb_buffer_pool_size?</h3>
-                            <p>The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to cache data and indexes of its tables.</p>
+                            <p>The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to
+                                cache data and indexes of its tables.</p>
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">How is max_connections calculated?</h3>
-                            <p>In this calculator, max_connections is estimated as 100 connections per GB of available memory. However, the actual optimal value depends on your specific workload and server configuration.</p>
+                            <p>In this calculator, max_connections is estimated as 100 connections per GB of available
+                                memory. However, the actual optimal value depends on your specific workload and server
+                                configuration.</p>
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Why is some memory reserved for the OS?</h3>
-                            <p>Reserving memory for the OS ensures that the system has enough resources to run smoothly, preventing potential slowdowns or crashes due to memory exhaustion.</p>
+                            <p>Reserving memory for the OS ensures that the system has enough resources to run smoothly,
+                                preventing potential slowdowns or crashes due to memory exhaustion.</p>
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Are these settings optimal for all scenarios?</h3>
-                            <p>No, these are general recommendations. The optimal settings can vary greatly depending on your specific use case, workload, and hardware. It's always best to monitor your system's performance and adjust accordingly.</p>
+                            <p>No, these are general recommendations. The optimal settings can vary greatly depending on
+                                your specific use case, workload, and hardware. It's always best to monitor your
+                                system's performance and adjust accordingly.</p>
                         </div>
                     </div>
                 </div>
@@ -72,27 +93,36 @@
                     <h2 class="text-2xl font-bold mb-4 text-blue-600">Useful Links</h2>
                     <h3 class="text-lg font-semibold mb-2">MySQL Tutorials</h3>
                     <ul class="list-disc pl-5 mb-4">
-                        <li><a href="https://dev.mysql.com/doc/refman/8.0/en/tutorial.html" class="text-blue-500 hover:underline" target="_blank">MySQL Tutorial</a></li>
-                        <li><a href="https://www.w3schools.com/mysql/" class="text-blue-500 hover:underline" target="_blank">W3Schools MySQL Tutorial</a></li>
+                        <li><a href="https://dev.mysql.com/doc/refman/8.0/en/tutorial.html"
+                                class="text-blue-500 hover:underline" target="_blank">MySQL Tutorial</a></li>
+                        <li><a href="https://www.w3schools.com/mysql/" class="text-blue-500 hover:underline"
+                                target="_blank">W3Schools MySQL Tutorial</a></li>
                     </ul>
                     <h3 class="text-lg font-semibold mb-2">MariaDB Tutorials</h3>
                     <ul class="list-disc pl-5 mb-4">
-                        <li><a href="https://mariadb.com/kb/en/training-tutorials/" class="text-blue-500 hover:underline" target="_blank">MariaDB Tutorials</a></li>
-                        <li><a href="https://www.tutorialspoint.com/mariadb/" class="text-blue-500 hover:underline" target="_blank">TutorialsPoint MariaDB Tutorial</a></li>
+                        <li><a href="https://mariadb.com/kb/en/training-tutorials/"
+                                class="text-blue-500 hover:underline" target="_blank">MariaDB Tutorials</a></li>
+                        <li><a href="https://www.tutorialspoint.com/mariadb/" class="text-blue-500 hover:underline"
+                                target="_blank">TutorialsPoint MariaDB Tutorial</a></li>
                     </ul>
                     <h3 class="text-lg font-semibold mb-2">Important Links</h3>
                     <ul class="list-disc pl-5 mb-4">
-                        <li><a href="https://dev.mysql.com/doc/" class="text-blue-500 hover:underline" target="_blank">MySQL Documentation</a></li>
-                        <li><a href="https://mariadb.com/kb/en/documentation/" class="text-blue-500 hover:underline" target="_blank">MariaDB Documentation</a></li>
+                        <li><a href="https://dev.mysql.com/doc/" class="text-blue-500 hover:underline"
+                                target="_blank">MySQL Documentation</a></li>
+                        <li><a href="https://mariadb.com/kb/en/documentation/" class="text-blue-500 hover:underline"
+                                target="_blank">MariaDB Documentation</a></li>
                     </ul>
                 </div>
                 <footer class="bg-white rounded-xl shadow-lg p-8">
                     <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-500">
-                            © <span id="currentYear"></span> Created by <a href="https://gkanev.com" class="text-blue-500 hover:underline" target="_blank">Gabriel Kanev</a>
+                        <div class="text-sm text-zinc-500">
+                            © <span id="currentYear"></span> Created by <a href="https://gkanev.com"
+                                class="text-blue-500 hover:underline" target="_blank">Gabriel Kanev</a>
                         </div>
-                        <div class="text-sm text-gray-500">
-                            Want to contribute? -  <a href="https://github.com/MrGKanev/MySQL-MariaDB-Settings-Calculator" class="text-blue-500 hover:underline" target="_blank">GitHub</a>
+                        <div class="text-sm text-zinc-500">
+                            Want to contribute? - <a
+                                href="https://github.com/MrGKanev/MySQL-MariaDB-Settings-Calculator"
+                                class="text-blue-500 hover:underline" target="_blank">GitHub</a>
                         </div>
                     </div>
                 </footer>
@@ -100,6 +130,7 @@
         </div>
     </div>
 
-<script src="assets/script.js"></script>
+    <script src="assets/script.js"></script>
 </body>
+
 </html>
