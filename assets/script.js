@@ -1,67 +1,23 @@
 // Global variables to store settings for use across functions
 let globalSettings = {};
 
-// Workload template definitions
-const workloadTemplates = {
-  oltp: {
-    // Online Transaction Processing - optimized for many small transactions
-    innodb_buffer_pool_percentage: 0.7, // 70% of available memory
-    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
-    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
-    query_cache_size_percentage: 0.02, // Reduced from 5% - query cache can cause contention
-    max_connections_per_gb: 150, // Higher connection count
-    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
-    innodb_io_capacity_per_gb: 150, // Increased for better performance
-    tmp_table_size_percentage: 0.05, // 5% for temp tables
-    use_performance_schema: true, // Enable for monitoring
-    innodb_page_cleaners: 4 // Better background flushing
-  },
-  olap: {
-    // Online Analytical Processing - optimized for complex queries
-    innodb_buffer_pool_percentage: 0.75, // Slightly reduced from 80% to avoid memory pressure
-    innodb_log_file_size_ratio: 0.2, // 20% of buffer pool
-    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability
-    query_cache_size_percentage: 0, // Disable query cache for OLAP
-    max_connections_per_gb: 50, // Fewer connections
-    sort_buffer_size_percentage: 0.02, // Reduced but still larger for complex sorts
-    innodb_io_capacity_per_gb: 200, // Higher IO capacity for analytical queries
-    tmp_table_size_percentage: 0.1, // 10% for temp tables (OLAP needs larger temp tables)
-    use_performance_schema: true, // Enable for monitoring
-    join_buffer_size_percentage: 0.015, // Larger join buffers for complex joins
-    innodb_page_cleaners: 4 // Better background flushing
-  },
-  mixed: {
-    // Balanced settings for mixed workloads
-    innodb_buffer_pool_percentage: 0.75, // 75% of available memory
-    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
-    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
-    query_cache_size_percentage: 0.03, // 3% of available memory
-    max_connections_per_gb: 100, // Balance connections
-    sort_buffer_size_percentage: 0.02, // Medium sort buffers
-    innodb_io_capacity_per_gb: 120 // Balanced IO capacity
-  },
-  webserver: {
-    // Optimized for web applications with database
-    innodb_buffer_pool_percentage: 0.65, // 65% of available memory (leave more for web server)
-    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
-    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
-    query_cache_size_percentage: 0.05, // 5% for frequent similar queries
-    max_connections_per_gb: 120, // Higher connection count for web traffic
-    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
-    innodb_io_capacity_per_gb: 80 // Standard IO capacity
-  },
-  smallserver: {
-    // Optimized for small VPS environments
-    innodb_buffer_pool_percentage: 0.5, // Only 50% of available memory
-    innodb_log_file_size_ratio: 0.15, // Smaller log files
-    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability
-    query_cache_size_percentage: 0.03, // Small query cache
-    max_connections_per_gb: 80, // Limited connections
-    sort_buffer_size_percentage: 0.01, // Very small sort buffers
-    innodb_io_capacity_per_gb: 50 // Lower IO capacity for shared resources
-  }
-};
+// Function to determine optimal innodb_flush_method based on operating system
+function determineFlushMethod() {
+  const osType = document.getElementById("osType")?.value || "linux";
 
+  // Different flush methods based on OS
+  switch (osType) {
+    case "windows":
+      return "unbuffered"; // Best for Windows
+    case "macos":
+      return "fsync"; // Best for macOS
+    case "linux":
+    default:
+      return "O_DIRECT"; // Best for Linux
+  }
+}
+
+// Helper functions
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -81,6 +37,88 @@ function formatBytes(bytes) {
   return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
 }
 
+function syncSliderAndInput(sliderId, inputId, max) {
+  const slider = document.getElementById(sliderId);
+  const input = document.getElementById(inputId);
+
+  slider.addEventListener("input", function () {
+    input.value = this.value;
+    debouncedCalculate();
+  });
+
+  input.addEventListener("input", function () {
+    let value = parseFloat(this.value);
+    if (isNaN(value)) value = 0;
+    if (value > max) value = max;
+    this.value = value;
+    slider.value = value;
+    debouncedCalculate();
+  });
+}
+
+// Workload template definitions
+const workloadTemplates = {
+  oltp: {
+    // Online Transaction Processing - optimized for many small transactions
+    innodb_buffer_pool_percentage: 0.7, // 70% of available memory
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.02, // Reduced from 5% - query cache can cause contention
+    max_connections_per_gb: 150, // Higher connection count
+    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
+    innodb_io_capacity_per_gb: 150, // Increased for better performance
+    tmp_table_size_percentage: 0.05, // 5% for temp tables
+    use_performance_schema: true, // Enable for monitoring
+    innodb_page_cleaners: 4, // Better background flushing
+    innodb_flush_neighbors: 0, // Disable flush neighbors for SSD storage (better performance)
+  },
+  olap: {
+    // Online Analytical Processing - optimized for complex queries
+    innodb_buffer_pool_percentage: 0.75, // Slightly reduced from 80% to avoid memory pressure
+    innodb_log_file_size_ratio: 0.2, // 20% of buffer pool
+    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability for better write performance
+    query_cache_size_percentage: 0, // Disable query cache for OLAP
+    max_connections_per_gb: 50, // Fewer connections
+    sort_buffer_size_percentage: 0.02, // Reduced but still larger for complex sorts
+    innodb_io_capacity_per_gb: 200, // Higher IO capacity for analytical queries
+    tmp_table_size_percentage: 0.1, // 10% for temp tables (OLAP needs larger temp tables)
+    use_performance_schema: true, // Enable for monitoring
+    join_buffer_size_percentage: 0.015, // Larger join buffers for complex joins
+    innodb_page_cleaners: 4, // Better background flushing
+    innodb_flush_neighbors: 0, // Disable flush neighbors for SSD storage (better performance)
+  },
+  mixed: {
+    // Balanced settings for mixed workloads
+    innodb_buffer_pool_percentage: 0.75, // 75% of available memory
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.03, // 3% of available memory
+    max_connections_per_gb: 100, // Balance connections
+    sort_buffer_size_percentage: 0.02, // Medium sort buffers
+    innodb_io_capacity_per_gb: 120, // Balanced IO capacity
+  },
+  webserver: {
+    // Optimized for web applications with database
+    innodb_buffer_pool_percentage: 0.65, // 65% of available memory (leave more for web server)
+    innodb_log_file_size_ratio: 0.25, // 25% of buffer pool
+    innodb_flush_log_at_trx_commit: 1, // Full ACID compliance
+    query_cache_size_percentage: 0.05, // 5% for frequent similar queries
+    max_connections_per_gb: 120, // Higher connection count for web traffic
+    sort_buffer_size_percentage: 0.01, // Smaller sort buffers
+    innodb_io_capacity_per_gb: 80, // Standard IO capacity
+  },
+  smallserver: {
+    // Optimized for small VPS environments
+    innodb_buffer_pool_percentage: 0.5, // Only 50% of available memory
+    innodb_log_file_size_ratio: 0.15, // Smaller log files
+    innodb_flush_log_at_trx_commit: 2, // Slightly relaxed durability
+    query_cache_size_percentage: 0.03, // Small query cache
+    max_connections_per_gb: 80, // Limited connections
+    sort_buffer_size_percentage: 0.01, // Very small sort buffers
+    innodb_io_capacity_per_gb: 50, // Lower IO capacity for shared resources
+  },
+};
+
 // Function to calculate performance score
 function calculatePerformanceScore() {
   const {
@@ -91,7 +129,7 @@ function calculatePerformanceScore() {
     innodb_log_file_size,
     innodb_io_capacity,
     innodb_read_io_threads,
-    innodb_write_io_threads
+    innodb_write_io_threads,
   } = globalSettings;
 
   // Calculate individual scores (each out of 20 points)
@@ -100,7 +138,7 @@ function calculatePerformanceScore() {
     bufferPoolSize: 0,
     logFileSize: 0,
     connections: 0,
-    ioSettings: 0
+    ioSettings: 0,
   };
 
   // Memory allocation score - how much of total memory is available for MySQL
@@ -111,7 +149,8 @@ function calculatePerformanceScore() {
   const bufferPoolRatio =
     innodb_buffer_pool_size / (availableMemory * 1024 * 1024 * 1024);
   scores.bufferPoolSize = Math.round(
-    20 - Math.abs(0.75 - bufferPoolRatio) * 40); // Closer to 75% is better
+    20 - Math.abs(0.75 - bufferPoolRatio) * 40
+  ); // Closer to 75% is better
 
   // Log file size score - ideally 25% of buffer pool
   const logFileRatio = innodb_log_file_size / innodb_buffer_pool_size;
@@ -319,7 +358,8 @@ function generateMyCnfFile() {
     sort_buffer_size,
     read_buffer_size,
     read_rnd_buffer_size,
-    join_buffer_size
+    join_buffer_size,
+    innodb_flush_neighbors,
   } = globalSettings;
 
   // Determine if buffer pool instances should be used
@@ -327,28 +367,32 @@ function generateMyCnfFile() {
   if (innodb_buffer_pool_size > 1 * 1024 * 1024 * 1024) {
     const buffer_pool_GB = innodb_buffer_pool_size / (1024 * 1024 * 1024);
     buffer_pool_instances = Math.min(Math.ceil(buffer_pool_GB), 16);
-    
+
     // For smaller servers, don't use multiple instances to reduce overhead
     if (totalMemory < 4) {
       buffer_pool_instances = 1;
     }
   }
-  
+
   // Determine if performance schema should be enabled
   const enable_performance_schema = totalMemory >= 8 ? "ON" : "OFF";
-  
+
   // Set page cleaners - helps with buffer pool flushing
-  const innodb_page_cleaners = Math.max(buffer_pool_instances, totalMemory > 16 ? 4 : 1);
-  
+  const innodb_page_cleaners = Math.max(
+    buffer_pool_instances,
+    totalMemory > 16 ? 4 : 1
+  );
+
   // Calculate open_files_limit based on max_connections
   const open_files_limit = Math.max(max_connections * 10, 5000);
-  
+
   // For MySQL 8+, query cache is removed, so we'll comment it for newer versions
-  const query_cache_comment = "# Note: query_cache is removed in MySQL 8+. Uncomment for MySQL 5.7 or MariaDB\n# ";
-  
+  const query_cache_comment =
+    "# Note: query_cache is removed in MySQL 8+. Uncomment for MySQL 5.7 or MariaDB\n# ";
+
   // Table definition cache - larger for servers with many tables
   const table_definition_cache = totalMemory > 8 ? 4096 : 2048;
-  
+
   // Table open cache - depends on max connections
   const table_open_cache = Math.floor(max_connections * 4);
 
@@ -406,6 +450,7 @@ innodb_purge_threads           = ${totalMemory > 16 ? 4 : 1}
 innodb_strict_mode             = 1
 innodb_stats_on_metadata       = 0
 innodb_adaptive_flushing       = 1
+innodb_flush_neighbors         = ${innodb_flush_neighbors}
 
 # Performance Schema (monitoring)
 performance_schema             = ${enable_performance_schema}
@@ -554,16 +599,41 @@ function calculateSettings() {
 
   // New settings
   let innodb_flush_log_at_trx_commit = 1;
-  const innodb_flush_method = "O_DIRECT";
+
+  // Determine flush method based on OS
+  const innodb_flush_method = determineFlushMethod();
+
   const innodb_file_per_table = 1;
 
-  // Adjust IO capacity based on storage type - SSD vs HDD
-  // Default to a reasonable value, but this should be adjusted based on actual storage
-  let innodb_io_capacity = Math.floor(availableMemory * 100);
+  // Get storage type from UI
+  const storageType = document.getElementById("storageType")?.value || "ssd";
 
-  // For larger servers, increase IO capacity assuming better hardware
-  if (totalMemory > 16) {
-    innodb_io_capacity = Math.floor(availableMemory * 150);
+  // Adjust IO capacity based on storage type
+  let innodb_io_capacity = 0;
+  let innodb_flush_neighbors = 0; // Default to 0 for SSD (disable neighbor page flushing)
+
+  switch (storageType) {
+    case "nvme":
+      // NVMe drives have much higher IOPS capability
+      innodb_io_capacity = Math.floor(availableMemory * 200);
+      innodb_flush_neighbors = 0; // Keep disabled for NVMe
+      break;
+    case "hdd":
+      // HDDs have much lower IOPS, so we need to be more conservative
+      innodb_io_capacity = Math.floor(availableMemory * 50);
+      innodb_flush_neighbors = 1; // Enable for HDDs as they benefit from sequential writes
+      break;
+    case "ssd":
+    default:
+      // Standard SSD settings
+      innodb_io_capacity = Math.floor(availableMemory * 100);
+      innodb_flush_neighbors = 0;
+
+      // For larger servers, increase IO capacity assuming better hardware
+      if (totalMemory > 16) {
+        innodb_io_capacity = Math.floor(availableMemory * 150);
+      }
+      break;
   }
 
   // Calculate optimal number of buffer pool instances
@@ -655,6 +725,11 @@ function calculateSettings() {
     if (template.innodb_page_cleaners) {
       globalSettings.innodb_page_cleaners = template.innodb_page_cleaners;
     }
+
+    // Apply flush neighbors setting if available
+    if (template.innodb_flush_neighbors !== undefined) {
+      innodb_flush_neighbors = template.innodb_flush_neighbors;
+    }
   }
 
   const results = `
@@ -714,6 +789,7 @@ function calculateSettings() {
             <div><a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_join_buffer_size" target="_blank" class="text-blue-500 hover:underline">join_buffer_size</a> =</div><div>${formatBytes(
               join_buffer_size
             )}</div>
+            <div><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_neighbors" target="_blank" class="text-blue-500 hover:underline">innodb_flush_neighbors</a> =</div><div>${innodb_flush_neighbors}</div>
         </div>
         <p class="mt-4 text-sm text-zinc-600">Note: These are general recommendations. Adjust based on your specific needs and workload.</p>
     `;
@@ -745,6 +821,7 @@ function calculateSettings() {
     read_buffer_size,
     read_rnd_buffer_size,
     join_buffer_size,
+    innodb_flush_neighbors,
   };
 
   // Calculate performance score
@@ -754,25 +831,6 @@ function calculateSettings() {
   document.getElementById("configOutput").classList.add("hidden");
   document.getElementById("copyConfigBtn").classList.add("hidden");
   document.getElementById("downloadConfigBtn").classList.add("hidden");
-}
-
-function syncSliderAndInput(sliderId, inputId, max) {
-  const slider = document.getElementById(sliderId);
-  const input = document.getElementById(inputId);
-
-  slider.addEventListener("input", function () {
-    input.value = this.value;
-    debouncedCalculate();
-  });
-
-  input.addEventListener("input", function () {
-    let value = parseFloat(this.value);
-    if (isNaN(value)) value = 0;
-    if (value > max) value = max;
-    this.value = value;
-    slider.value = value;
-    debouncedCalculate();
-  });
 }
 
 const debouncedCalculate = debounce(calculateSettings, 300);
@@ -805,6 +863,14 @@ document
 document
   .getElementById("downloadConfigBtn")
   .addEventListener("click", downloadConfigFile);
+
+// Add event listeners for OS and storage type changes
+document
+  .getElementById("osType")
+  .addEventListener("change", debouncedCalculate);
+document
+  .getElementById("storageType")
+  .addEventListener("change", debouncedCalculate);
 
 // Initialize sliders
 syncSliderAndInput("totalMemorySlider", "totalMemory", 128);

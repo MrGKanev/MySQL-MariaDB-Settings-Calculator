@@ -114,6 +114,28 @@
                                 placeholder="Enter memory for other tasks" aria-labelledby="otherTasksMemoryLabel">
                             <span id="otherTasksMemoryLabel" class="sr-only">Memory for Other Tasks in GB</span>
                         </div>
+                        <div>
+                            <label for="osType" class="block text-sm font-medium text-zinc-700 mb-1">Operating
+                                System</label>
+                            <select id="osType"
+                                class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <option value="linux">Linux</option>
+                                <option value="windows">Windows</option>
+                                <option value="macos">macOS</option>
+                            </select>
+                            <span class="mt-1 text-sm text-zinc-500">Affects optimal InnoDB flush method settings</span>
+                        </div>
+                        <div>
+                            <label for="storageType" class="block text-sm font-medium text-zinc-700 mb-1">Storage
+                                Type</label>
+                            <select id="storageType"
+                                class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <option value="ssd">SSD (Default)</option>
+                                <option value="nvme">NVMe</option>
+                                <option value="hdd">HDD (Traditional)</option>
+                            </select>
+                            <span class="mt-1 text-sm text-zinc-500">Affects InnoDB I/O optimizations</span>
+                        </div>
                     </div>
                     <div id="error" class="text-red-500 mb-4 hidden"></div>
                     <div id="results" class="mt-6 bg-zinc-50 p-4 rounded-md"></div>
@@ -186,6 +208,24 @@
                             <p>No, these are general recommendations. The optimal settings can vary greatly depending on
                                 your specific use case, workload, and hardware. It's always best to monitor your
                                 system's performance and adjust accordingly.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">Why do different storage types matter?</h3>
+                            <p>SSDs and NVMe drives have much higher IOPS (Input/Output Operations Per Second) than
+                                traditional HDDs.
+                                Settings like innodb_io_capacity, innodb_flush_neighbors, and innodb_flush_method should
+                                be optimized
+                                differently based on your storage type. For example, disabling innodb_flush_neighbors
+                                improves
+                                performance on SSDs but can harm performance on HDDs.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">How is innodb_flush_method chosen?</h3>
+                            <p>The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
+                                generally
+                                recommended as it bypasses the filesystem cache. For Windows, unbuffered is typically
+                                best,
+                                while macOS often works best with fsync.</p>
                         </div>
                     </div>
                 </div>
