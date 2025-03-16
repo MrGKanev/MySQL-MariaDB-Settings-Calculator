@@ -1,5 +1,41 @@
 // Global variables to store settings for use across functions
-let globalSettings = {
+let globalSettings = {};
+
+// Function to determine optimal innodb_flush_method based on operating system
+function determineFlushMethod() {
+  const osType = document.getElementById("osType")?.value || "linux";
+
+  // Different flush methods based on OS
+  switch (osType) {
+    case "windows":
+      return "unbuffered"; // Best for Windows
+    case "macos":
+      return "fsync"; // Best for macOS
+    case "linux":
+    default:
+      return "O_DIRECT"; // Best for Linux
+  }
+}
+
+// Helper functions
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function formatBytes(bytes) {
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  if (bytes === 0) return "0 Bytes";
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+}
 
 function syncSliderAndInput(sliderId, inputId, max) {
   const slider = document.getElementById(sliderId);
@@ -20,72 +56,6 @@ function syncSliderAndInput(sliderId, inputId, max) {
   });
 }
 
-const debouncedCalculate = debounce(calculateSettings, 300);
-
-// Add event listener for template selection
-document
-  .getElementById("workloadTemplate")
-  .addEventListener("change", function () {
-    const templateName = this.value;
-
-    if (templateName === "custom") {
-      // Do nothing, keep current custom settings
-      globalSettings.templateSettings = null;
-    } else {
-      // Apply template settings
-      globalSettings.templateSettings = workloadTemplates[templateName];
-    }
-
-    // Recalculate with the new template settings
-    calculateSettings();
-  });
-
-// Event listeners for the buttons
-document
-  .getElementById("generateConfigBtn")
-  .addEventListener("click", generateMyCnfFile);
-document
-  .getElementById("copyConfigBtn")
-  .addEventListener("click", copyConfigToClipboard);
-document
-  .getElementById("downloadConfigBtn")
-  .addEventListener("click", downloadConfigFile);
-
-// Add event listeners for OS and storage type changes
-document
-  .getElementById("osType")
-  .addEventListener("change", debouncedCalculate);
-document
-  .getElementById("storageType")
-  .addEventListener("change", debouncedCalculate);
-
-// Initialize sliders
-syncSliderAndInput("totalMemorySlider", "totalMemory", 128);
-syncSliderAndInput("reservedMemorySlider", "reservedMemory", 16);
-syncSliderAndInput("otherTasksMemorySlider", "otherTasksMemory", 16);
-
-// Set current year in footer
-document.getElementById("currentYear").textContent = new Date().getFullYear();
-
-// Initial calculation
-calculateSettings();;
-
-// Function to determine optimal innodb_flush_method based on operating system
-function determineFlushMethod() {
-  const osType = document.getElementById("osType")?.value || "linux";
-  
-  // Different flush methods based on OS
-  switch(osType) {
-    case "windows":
-      return "unbuffered"; // Best for Windows
-    case "macos":
-      return "fsync"; // Best for macOS
-    case "linux":
-    default:
-      return "O_DIRECT"; // Best for Linux
-  }
-}
-
 // Workload template definitions
 const workloadTemplates = {
   oltp: {
@@ -100,7 +70,7 @@ const workloadTemplates = {
     tmp_table_size_percentage: 0.05, // 5% for temp tables
     use_performance_schema: true, // Enable for monitoring
     innodb_page_cleaners: 4, // Better background flushing
-    innodb_flush_neighbors: 0 // Disable flush neighbors for SSD storage (better performance)
+    innodb_flush_neighbors: 0, // Disable flush neighbors for SSD storage (better performance)
   },
   olap: {
     // Online Analytical Processing - optimized for complex queries
@@ -115,7 +85,7 @@ const workloadTemplates = {
     use_performance_schema: true, // Enable for monitoring
     join_buffer_size_percentage: 0.015, // Larger join buffers for complex joins
     innodb_page_cleaners: 4, // Better background flushing
-    innodb_flush_neighbors: 0 // Disable flush neighbors for SSD storage (better performance)
+    innodb_flush_neighbors: 0, // Disable flush neighbors for SSD storage (better performance)
   },
   mixed: {
     // Balanced settings for mixed workloads
@@ -125,7 +95,7 @@ const workloadTemplates = {
     query_cache_size_percentage: 0.03, // 3% of available memory
     max_connections_per_gb: 100, // Balance connections
     sort_buffer_size_percentage: 0.02, // Medium sort buffers
-    innodb_io_capacity_per_gb: 120 // Balanced IO capacity
+    innodb_io_capacity_per_gb: 120, // Balanced IO capacity
   },
   webserver: {
     // Optimized for web applications with database
@@ -135,7 +105,7 @@ const workloadTemplates = {
     query_cache_size_percentage: 0.05, // 5% for frequent similar queries
     max_connections_per_gb: 120, // Higher connection count for web traffic
     sort_buffer_size_percentage: 0.01, // Smaller sort buffers
-    innodb_io_capacity_per_gb: 80 // Standard IO capacity
+    innodb_io_capacity_per_gb: 80, // Standard IO capacity
   },
   smallserver: {
     // Optimized for small VPS environments
@@ -145,28 +115,9 @@ const workloadTemplates = {
     query_cache_size_percentage: 0.03, // Small query cache
     max_connections_per_gb: 80, // Limited connections
     sort_buffer_size_percentage: 0.01, // Very small sort buffers
-    innodb_io_capacity_per_gb: 50 // Lower IO capacity for shared resources
-  }
+    innodb_io_capacity_per_gb: 50, // Lower IO capacity for shared resources
+  },
 };
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-function formatBytes(bytes) {
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  if (bytes === 0) return "0 Bytes";
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
-}
 
 // Function to calculate performance score
 function calculatePerformanceScore() {
@@ -178,7 +129,7 @@ function calculatePerformanceScore() {
     innodb_log_file_size,
     innodb_io_capacity,
     innodb_read_io_threads,
-    innodb_write_io_threads
+    innodb_write_io_threads,
   } = globalSettings;
 
   // Calculate individual scores (each out of 20 points)
@@ -187,7 +138,7 @@ function calculatePerformanceScore() {
     bufferPoolSize: 0,
     logFileSize: 0,
     connections: 0,
-    ioSettings: 0
+    ioSettings: 0,
   };
 
   // Memory allocation score - how much of total memory is available for MySQL
@@ -198,7 +149,8 @@ function calculatePerformanceScore() {
   const bufferPoolRatio =
     innodb_buffer_pool_size / (availableMemory * 1024 * 1024 * 1024);
   scores.bufferPoolSize = Math.round(
-    20 - Math.abs(0.75 - bufferPoolRatio) * 40); // Closer to 75% is better
+    20 - Math.abs(0.75 - bufferPoolRatio) * 40
+  ); // Closer to 75% is better
 
   // Log file size score - ideally 25% of buffer pool
   const logFileRatio = innodb_log_file_size / innodb_buffer_pool_size;
@@ -406,7 +358,8 @@ function generateMyCnfFile() {
     sort_buffer_size,
     read_buffer_size,
     read_rnd_buffer_size,
-    join_buffer_size
+    join_buffer_size,
+    innodb_flush_neighbors,
   } = globalSettings;
 
   // Determine if buffer pool instances should be used
@@ -414,34 +367,34 @@ function generateMyCnfFile() {
   if (innodb_buffer_pool_size > 1 * 1024 * 1024 * 1024) {
     const buffer_pool_GB = innodb_buffer_pool_size / (1024 * 1024 * 1024);
     buffer_pool_instances = Math.min(Math.ceil(buffer_pool_GB), 16);
-    
+
     // For smaller servers, don't use multiple instances to reduce overhead
     if (totalMemory < 4) {
       buffer_pool_instances = 1;
     }
   }
-  
+
   // Determine if performance schema should be enabled
   const enable_performance_schema = totalMemory >= 8 ? "ON" : "OFF";
-  
+
   // Set page cleaners - helps with buffer pool flushing
-  const innodb_page_cleaners = Math.max(buffer_pool_instances, totalMemory > 16 ? 4 : 1);
-  
+  const innodb_page_cleaners = Math.max(
+    buffer_pool_instances,
+    totalMemory > 16 ? 4 : 1
+  );
+
   // Calculate open_files_limit based on max_connections
   const open_files_limit = Math.max(max_connections * 10, 5000);
-  
+
   // For MySQL 8+, query cache is removed, so we'll comment it for newer versions
-  const query_cache_comment = "# Note: query_cache is removed in MySQL 8+. Uncomment for MySQL 5.7 or MariaDB\n# ";
-  
+  const query_cache_comment =
+    "# Note: query_cache is removed in MySQL 8+. Uncomment for MySQL 5.7 or MariaDB\n# ";
+
   // Table definition cache - larger for servers with many tables
   const table_definition_cache = totalMemory > 8 ? 4096 : 2048;
-  
+
   // Table open cache - depends on max connections
   const table_open_cache = Math.floor(max_connections * 4);
-  
-  // Get flush neighbors setting based on storage type
-  const storageType = document.getElementById("storageType")?.value || "ssd";
-  const innodb_flush_neighbors = storageType === "hdd" ? 1 : 0;
 
   const configContent = `# MySQL/MariaDB Configuration File
 # Generated by MySQL/MariaDB Settings Calculator (https://database.gkanev.com/)
@@ -646,11 +599,10 @@ function calculateSettings() {
 
   // New settings
   let innodb_flush_log_at_trx_commit = 1;
-  
-  // Determine flush method based on OS (we'll add OS detection UI later)
-  // For now we'll use a function that defaults to O_DIRECT for Linux but handles Windows differently
+
+  // Determine flush method based on OS
   const innodb_flush_method = determineFlushMethod();
-  
+
   const innodb_file_per_table = 1;
 
   // Get storage type from UI
@@ -659,8 +611,8 @@ function calculateSettings() {
   // Adjust IO capacity based on storage type
   let innodb_io_capacity = 0;
   let innodb_flush_neighbors = 0; // Default to 0 for SSD (disable neighbor page flushing)
-  
-  switch(storageType) {
+
+  switch (storageType) {
     case "nvme":
       // NVMe drives have much higher IOPS capability
       innodb_io_capacity = Math.floor(availableMemory * 200);
@@ -676,7 +628,7 @@ function calculateSettings() {
       // Standard SSD settings
       innodb_io_capacity = Math.floor(availableMemory * 100);
       innodb_flush_neighbors = 0;
-      
+
       // For larger servers, increase IO capacity assuming better hardware
       if (totalMemory > 16) {
         innodb_io_capacity = Math.floor(availableMemory * 150);
@@ -773,7 +725,7 @@ function calculateSettings() {
     if (template.innodb_page_cleaners) {
       globalSettings.innodb_page_cleaners = template.innodb_page_cleaners;
     }
-    
+
     // Apply flush neighbors setting if available
     if (template.innodb_flush_neighbors !== undefined) {
       innodb_flush_neighbors = template.innodb_flush_neighbors;
@@ -869,7 +821,7 @@ function calculateSettings() {
     read_buffer_size,
     read_rnd_buffer_size,
     join_buffer_size,
-    innodb_flush_neighbors
+    innodb_flush_neighbors,
   };
 
   // Calculate performance score
@@ -880,3 +832,53 @@ function calculateSettings() {
   document.getElementById("copyConfigBtn").classList.add("hidden");
   document.getElementById("downloadConfigBtn").classList.add("hidden");
 }
+
+const debouncedCalculate = debounce(calculateSettings, 300);
+
+// Add event listener for template selection
+document
+  .getElementById("workloadTemplate")
+  .addEventListener("change", function () {
+    const templateName = this.value;
+
+    if (templateName === "custom") {
+      // Do nothing, keep current custom settings
+      globalSettings.templateSettings = null;
+    } else {
+      // Apply template settings
+      globalSettings.templateSettings = workloadTemplates[templateName];
+    }
+
+    // Recalculate with the new template settings
+    calculateSettings();
+  });
+
+// Event listeners for the buttons
+document
+  .getElementById("generateConfigBtn")
+  .addEventListener("click", generateMyCnfFile);
+document
+  .getElementById("copyConfigBtn")
+  .addEventListener("click", copyConfigToClipboard);
+document
+  .getElementById("downloadConfigBtn")
+  .addEventListener("click", downloadConfigFile);
+
+// Add event listeners for OS and storage type changes
+document
+  .getElementById("osType")
+  .addEventListener("change", debouncedCalculate);
+document
+  .getElementById("storageType")
+  .addEventListener("change", debouncedCalculate);
+
+// Initialize sliders
+syncSliderAndInput("totalMemorySlider", "totalMemory", 128);
+syncSliderAndInput("reservedMemorySlider", "reservedMemory", 16);
+syncSliderAndInput("otherTasksMemorySlider", "otherTasksMemory", 16);
+
+// Set current year in footer
+document.getElementById("currentYear").textContent = new Date().getFullYear();
+
+// Initial calculation
+calculateSettings();
