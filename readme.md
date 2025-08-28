@@ -146,13 +146,13 @@ Please ensure your code adheres to the existing style and that you've tested you
 - Continuously watch for changes in the `style.css` file, updating the output file whenever changes occur.
 
 ```bash
-npx tailwindcss -i ./assets/input.css -o ./assets/output.css --watch
+npx @tailwindcss/cli -i ./assets/css/styles.css -o ./assets/css/styles.min.css --watch
 ```
 
 - Generate a minified version of the CSS
 
 ```bash
-npx tailwindcss -o ./assets/output.css --minify 
+npx @tailwindcss/cli -i ./assets/css/styles.css -o ./assets/css/styles_min.css --minify
 ```
 
 ## License
