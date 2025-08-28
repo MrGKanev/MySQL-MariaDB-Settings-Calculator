@@ -29,6 +29,7 @@ class DOMCache {
       // Performance score elements
       this.elements.scoreCircle = document.getElementById('scoreCircle');
       this.elements.scoreValue = document.getElementById('scoreValue');
+      this.elements.scoreGrade = document.getElementById('scoreGrade');
       this.elements.scoreBreakdown = document.getElementById('scoreBreakdown');
       this.elements.scoreRecommendations = document.getElementById('scoreRecommendations');
 
@@ -224,7 +225,7 @@ class DOMCache {
     }
     
     const element = this.elements[elementId];
-    if (!element) {
+    if (!element && elementId !== 'scoreGrade') { // scoreGrade might not exist initially
       console.warn(`Element '${elementId}' not found in DOM cache`);
     }
     

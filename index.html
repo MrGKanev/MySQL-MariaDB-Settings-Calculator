@@ -39,7 +39,6 @@
     <!-- Accessibility and Performance -->
     <meta name="color-scheme" content="light">
     <link rel="preload" href="assets/css/styles.min.css" as="style">
-    <link rel="preload" href="assets/js/main.js" as="script">
 
     <!-- Structured Data / Schema.org -->
     <script type="application/ld+json">
@@ -305,7 +304,7 @@
                         <h2 class="text-2xl font-bold mb-4 text-blue-600">Performance Score</h2>
                         <div id="performanceScore" class="flex items-center justify-center mb-4" role="img"
                             aria-label="Performance score visualization">
-                            <div class="relative w-48 h-48">
+                            <div class="relative w-40 h-40">
                                 <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90" role="img"
                                     aria-hidden="true">
                                     <!-- Background circle -->
@@ -317,9 +316,12 @@
                                         style="transition: stroke-dashoffset 1s ease-in-out, stroke 0.3s ease;" />
                                 </svg>
                                 <div class="absolute inset-0 flex items-center justify-center flex-col">
-                                    <span id="scoreValue" class="text-4xl font-bold text-blue-600"
+                                    <span id="scoreValue" class="text-3xl font-bold text-blue-600"
                                         aria-live="polite">0</span>
-                                    <span class="text-sm text-zinc-600 mt-1">Performance Score</span>
+                                    <div class="text-sm text-zinc-600 mt-1 text-center leading-tight">
+                                        <div>Performance</div>
+                                        <div>Score</div>
+                                    </div>
                                     <div class="mt-1">
                                         <span id="scoreGrade"
                                             class="text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600">Calculating...</span>
@@ -471,11 +473,11 @@
                         <div class="text-sm text-zinc-500">
                             <a href="https://github.com/MrGKanev/MySQL-MariaDB-Settings-Calculator"
                                 class="text-blue-500 hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
-                                target="_blank" rel="noopener">GitHub</a>
+                                target="_blank" rel="noopener">You can help at GitHub</a>
                         </div>
                     </div>
                     <div class="mt-2 text-xs text-zinc-400 text-center">
-                        <span id="appVersion">v2.0.0</span>
+                        <span id="appVersion">2.0.0</span>
                     </div>
                 </footer>
             </aside>

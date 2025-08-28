@@ -41,7 +41,6 @@ export class UIManager {
       await this.performCalculation();
 
       this.isInitialized = true;
-      console.log('UI Manager initialized successfully');
     } catch (error) {
       console.error('Error initializing UI Manager:', error);
       this.showError('Failed to initialize calculator. Please refresh the page.');
@@ -193,7 +192,6 @@ export class UIManager {
         this.announceToScreenReader(`${format} configuration downloaded successfully`);
       }
     } catch (error) {
-      console.error('Export error:', error);
       this.showError(`Failed to export configuration as ${format}.`);
     }
   }
@@ -224,7 +222,6 @@ export class UIManager {
         this.announceToScreenReader('Shareable configuration link copied to clipboard');
       }
     } catch (error) {
-      console.error('Share error:', error);
       this.showError('Failed to share configuration.');
     }
   }
@@ -460,7 +457,6 @@ export class UIManager {
       this.hideConfigOutput();
 
     } catch (error) {
-      console.error('Calculation error:', error);
       this.showError('Error performing calculations. Please check your inputs.');
     } finally {
       this.setLoadingState('calculation', false);
@@ -588,7 +584,7 @@ export class UIManager {
     const { totalScore, scores, recommendations } = scoreData;
 
     // Update circular progress with improved styling
-    this.updateScoreCircle(totalScore);
+    this.updateScoreCircleDisplay(totalScore);
     
     // Update score value
     domCache.setText('scoreValue', totalScore.toString());
@@ -601,10 +597,51 @@ export class UIManager {
   }
 
   /**
-   * Update the circular score indicator (legacy method, now calls new method)
+   * Update the circular score indicator with improved styling
    */
-  updateScoreCircleLegacy(score) {
-    this.updateScoreCircle(score);
+  updateScoreCircleDisplay(score) {
+    const circle = document.getElementById('scoreCircle');
+    const scoreGrade = document.getElementById('scoreGrade');
+    
+    if (!circle) return;
+
+    const circumference = 2 * Math.PI * 42; // radius = 42
+    const offset = circumference - (score / 100) * circumference;
+
+    // Update circle progress
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = offset;
+    
+    // Update color and grade based on score
+    let color = '#ef4444'; // Red for low scores
+    let gradeText = 'Poor';
+    let gradeClass = 'bg-red-100 text-red-800';
+    
+    if (score >= 90) {
+      color = '#10b981'; // Green
+      gradeText = 'Excellent';
+      gradeClass = 'bg-green-100 text-green-800';
+    } else if (score >= 80) {
+      color = '#10b981'; // Green
+      gradeText = 'Good';
+      gradeClass = 'bg-green-100 text-green-800';
+    } else if (score >= 70) {
+      color = '#3b82f6'; // Blue
+      gradeText = 'Fair';
+      gradeClass = 'bg-blue-100 text-blue-800';
+    } else if (score >= 50) {
+      color = '#f59e0b'; // Orange
+      gradeText = 'Needs Work';
+      gradeClass = 'bg-orange-100 text-orange-800';
+    }
+    
+    circle.style.stroke = color;
+    
+    // Update grade display if element exists
+    if (scoreGrade) {
+      scoreGrade.textContent = gradeText;
+      scoreGrade.className = `text-xs font-medium px-2 py-1 rounded-full ${gradeClass}`;
+    }
   }
 
   /**
@@ -650,6 +687,53 @@ export class UIManager {
   }
 
   /**
+   * Announce message to screen readers
+   */
+  announceToScreenReader(message) {
+    const announcer = document.getElementById('screenReaderAnnouncements');
+    if (announcer) {
+      announcer.textContent = message;
+      
+      // Clear after a short delay to allow for re-announcements
+      setTimeout(() => {
+        announcer.textContent = '';
+      }, 1000);
+    }
+  }
+
+  /**
+   * Update recommendations list
+   */
+  updateRecommendations(recommendations) {
+    const recommendationsHTML = recommendations
+      .map(rec => `<li class="mb-2">${rec}</li>`)
+      .join('');
+
+    const recommendationsContainer = domCache.get('scoreRecommendations');
+    if (recommendationsContainer) {
+      const ul = recommendationsContainer.querySelector('ul');
+      if (ul) {
+        ul.innerHTML = recommendationsHTML;
+      }
+    }
+  }
+
+  /**
+   * Announce message to screen readers
+   */
+  announceToScreenReader(message) {
+    const announcer = document.getElementById('screenReaderAnnouncements');
+    if (announcer) {
+      announcer.textContent = message;
+      
+      // Clear after a short delay to allow for re-announcements
+      setTimeout(() => {
+        announcer.textContent = '';
+      }, 1000);
+    }
+  }
+
+  /**
    * Handle config generation
    */
   async handleGenerateConfig() {
@@ -674,7 +758,6 @@ export class UIManager {
       domCache.show('downloadConfigBtn');
 
     } catch (error) {
-      console.error('Config generation error:', error);
       this.showError('Error generating configuration file.');
     } finally {
       this.setLoadingState('config-generation', false);
@@ -689,7 +772,6 @@ export class UIManager {
       await configGenerator.copyToClipboard(this.currentResults, 'my.cnf');
       this.showSuccessMessage('copyConfigBtn', 'Copied!', 2000);
     } catch (error) {
-      console.error('Copy error:', error);
       this.showError('Failed to copy to clipboard. Please try selecting and copying manually.');
     }
   }
@@ -702,7 +784,6 @@ export class UIManager {
       const result = await configGenerator.exportToFile(this.currentResults, 'my.cnf');
       this.showSuccessMessage('downloadConfigBtn', 'Downloaded!', 2000);
     } catch (error) {
-      console.error('Download error:', error);
       this.showError('Failed to download configuration file.');
     }
   }

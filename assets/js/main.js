@@ -23,8 +23,6 @@ class MySQLCalculatorApp {
     if (this.isInitialized) return;
 
     try {
-      console.log('Starting MySQL/MariaDB Calculator v' + this.version);
-
       // Check browser compatibility
       this.checkBrowserCompatibility();
 
@@ -39,8 +37,6 @@ class MySQLCalculatorApp {
 
       // Mark as initialized
       this.isInitialized = true;
-      
-      console.log('Application initialized successfully');
 
     } catch (error) {
       console.error('Failed to initialize MySQL Calculator:', error);
@@ -77,8 +73,6 @@ class MySQLCalculatorApp {
     if (missingFeatures.length > 0) {
       throw new Error(`Browser missing required features: ${missingFeatures.join(', ')}`);
     }
-
-    console.log('Browser compatibility check passed');
   }
 
   /**
@@ -95,8 +89,6 @@ class MySQLCalculatorApp {
     window.addEventListener('error', (event) => {
       console.error('JavaScript error:', event.error);
     });
-
-    console.log('Global error handling setup complete');
   }
 
   /**
@@ -105,8 +97,6 @@ class MySQLCalculatorApp {
   setupGlobalFeatures() {
     // Setup help system
     this.setupHelpSystem();
-
-    console.log('Global features setup complete');
   }
 
   /**
@@ -194,8 +184,6 @@ class MySQLCalculatorApp {
    * Reset application state
    */
   async reset() {
-    console.log('Resetting application state');
-    
     try {
       // Reset UI
       uiManager.resetForm();
@@ -203,7 +191,6 @@ class MySQLCalculatorApp {
       // Reset templates
       templateManager.setTemplate('custom');
       
-      console.log('Application reset complete');
     } catch (error) {
       console.error('Error resetting application:', error);
     }
