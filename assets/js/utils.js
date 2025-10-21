@@ -138,22 +138,66 @@ export function calculateBufferPoolInstances(bufferPoolSize, totalMemoryGB) {
   if (bufferPoolSize <= 1 * 1024 * 1024 * 1024) {
     return 1;
   }
-  
+
   const bufferPoolGB = convertBytesToGB(bufferPoolSize);
-  let instances = Math.min(Math.ceil(bufferPoolGB), 16);
-  
+
   // For smaller servers, don't add overhead of multiple instances
   if (totalMemoryGB < 4) {
-    instances = 1;
+    return 1;
   }
-  
+
+  // Research shows: 1 instance per 1-2GB of buffer pool is optimal
+  // For large buffer pools (64GB+), we need more instances to reduce contention
+  // Example: 96GB buffer pool should have 48-96 instances, not capped at 16
+  let instances;
+
+  if (bufferPoolGB >= 64) {
+    // Large pools: 1 instance per 1GB (more aggressive parallelization)
+    instances = Math.ceil(bufferPoolGB);
+  } else if (bufferPoolGB >= 32) {
+    // Medium-large pools: 1 instance per 1.5GB
+    instances = Math.ceil(bufferPoolGB / 1.5);
+  } else if (bufferPoolGB >= 16) {
+    // Medium pools: 1 instance per 2GB
+    instances = Math.ceil(bufferPoolGB / 2);
+  } else {
+    // Smaller pools: use original logic (1 instance per GB, capped at 16)
+    instances = Math.min(Math.ceil(bufferPoolGB), 16);
+  }
+
   return instances;
 }
 
 export function calculateIOThreads(totalMemoryGB) {
+  // Scale I/O threads based on server size
+  // Large servers benefit from more I/O threads to handle parallel operations
+  let readThreads, writeThreads;
+
+  if (totalMemoryGB >= 128) {
+    // Very large servers: 16 threads for maximum parallelism
+    readThreads = 16;
+    writeThreads = 16;
+  } else if (totalMemoryGB >= 64) {
+    // Large servers: 12 threads
+    readThreads = 12;
+    writeThreads = 12;
+  } else if (totalMemoryGB >= 32) {
+    // Medium-large servers: 8 threads
+    readThreads = 8;
+    writeThreads = 8;
+  } else if (totalMemoryGB >= 16) {
+    // Medium servers: 8 threads
+    readThreads = 8;
+    writeThreads = 8;
+  } else {
+    // Smaller servers: 4 threads
+    readThreads = 4;
+    writeThreads = 4;
+  }
+
   return {
-    read: totalMemoryGB > 16 ? 8 : 4,
-    write: totalMemoryGB > 16 ? 8 : 4
+    read: readThreads,
+    write: writeThreads
   };
 }
 
