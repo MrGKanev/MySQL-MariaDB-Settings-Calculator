@@ -132,15 +132,15 @@
                                         Total Server Memory (GB)
                                         <span class="text-red-500" aria-label="Required">*</span>
                                     </label>
-                                    <input type="range" id="totalMemorySlider" min="1" max="128" step="0.5" value="1"
+                                    <input type="range" id="totalMemorySlider" min="1" max="512" step="0.5" value="1"
                                         class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                                         aria-label="Total Server Memory slider" aria-describedby="totalMemory-help">
-                                    <input type="number" id="totalMemory" value="1" min="0.5" max="128" step="0.1"
+                                    <input type="number" id="totalMemory" value="1" min="0.5" max="512" step="0.1"
                                         class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                         placeholder="Enter total memory in GB" aria-describedby="totalMemory-help"
                                         required>
                                     <p id="totalMemory-help" class="mt-1 text-sm text-zinc-500">
-                                        Total RAM available on your server
+                                        Total RAM available on your server (supports up to 512GB)
                                     </p>
                                 </div>
 
@@ -149,10 +149,10 @@
                                     <label for="reservedMemory" class="block text-sm font-medium text-zinc-700 mb-1">
                                         Reserved Memory for OS (GB)
                                     </label>
-                                    <input type="range" id="reservedMemorySlider" min="0" max="16" step="0.1" value="0"
+                                    <input type="range" id="reservedMemorySlider" min="0" max="256" step="0.1" value="0"
                                         class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                                         aria-label="Reserved Memory slider" aria-describedby="reservedMemory-help">
-                                    <input type="number" id="reservedMemory" value="0" min="0" max="16" step="0.1"
+                                    <input type="number" id="reservedMemory" value="0" min="0" max="256" step="0.1"
                                         class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                         placeholder="Enter reserved memory" aria-describedby="reservedMemory-help">
                                     <p id="reservedMemory-help" class="mt-1 text-sm text-zinc-500">
@@ -165,16 +165,16 @@
                                     <label for="otherTasksMemory" class="block text-sm font-medium text-zinc-700 mb-1">
                                         Memory for Other Tasks (GB)
                                     </label>
-                                    <input type="range" id="otherTasksMemorySlider" min="0" max="64" step="0.1"
+                                    <input type="range" id="otherTasksMemorySlider" min="0" max="256" step="0.5"
                                         value="0"
                                         class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                                         aria-label="Other Tasks Memory slider" aria-describedby="otherTasksMemory-help">
-                                    <input type="number" id="otherTasksMemory" value="0" min="0" max="64" step="0.1"
+                                    <input type="number" id="otherTasksMemory" value="0" min="0" max="256" step="0.1"
                                         class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                         placeholder="Enter memory for other tasks"
                                         aria-describedby="otherTasksMemory-help">
                                     <p id="otherTasksMemory-help" class="mt-1 text-sm text-zinc-500">
-                                        Memory allocated for web servers, applications, or other services
+                                        Memory allocated for web servers, applications, or other services (up to 256GB)
                                     </p>
                                 </div>
 
@@ -259,7 +259,7 @@
                                     <button type="button"
                                         class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
                                         data-format="docker-compose" role="menuitem">
-                                        Docker Compose
+                                        Download Docker Compose
                                     </button>
                                     <button type="button"
                                         class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none border-t"
@@ -411,8 +411,7 @@
                                 <p class="mt-2 text-zinc-700">
                                     The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
                                     generally recommended as it bypasses the filesystem cache. For Windows, unbuffered
-                                    is typically
-                                    best, while macOS often works best with fsync.
+                                    is typically best, while macOS often works best with fsync.
                                 </p>
                             </details>
                         </div>
@@ -477,7 +476,7 @@
                         </div>
                     </div>
                     <div class="mt-2 text-xs text-zinc-400 text-center">
-                        <span id="appVersion">2.0.0</span>
+                        <span id="appVersion">2.1.0</span>
                     </div>
                 </footer>
             </aside>

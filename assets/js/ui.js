@@ -343,30 +343,62 @@ export class UIManager {
   }
 
   /**
+   * Get adaptive step size based on current value
+   */
+  getAdaptiveStep(value, sliderType) {
+    if (sliderType === 'totalMemory') {
+      if (value < 32) return 0.5;
+      if (value < 128) return 1;
+      return 2;
+    } else if (sliderType === 'otherTasksMemory') {
+      if (value < 32) return 0.5;
+      return 1;
+    } else if (sliderType === 'reservedMemory') {
+      return 0.1; // Keep fine control for reserved memory
+    }
+    return 1;
+  }
+
+  /**
+   * Update slider step attribute dynamically
+   */
+  updateSliderStep(slider, sliderType) {
+    const currentValue = parseFloat(slider.value);
+    const newStep = this.getAdaptiveStep(currentValue, sliderType);
+    slider.step = newStep;
+  }
+
+  /**
    * Setup slider and input synchronization
    */
   setupSliderSync() {
     const syncPairs = [
-      ['totalMemorySlider', 'totalMemory', 128],
-      ['reservedMemorySlider', 'reservedMemory', 16],
-      ['otherTasksMemorySlider', 'otherTasksMemory', 64]
+      ['totalMemorySlider', 'totalMemory', 512, 'totalMemory'],
+      ['reservedMemorySlider', 'reservedMemory', 16, 'reservedMemory'],
+      ['otherTasksMemorySlider', 'otherTasksMemory', 256, 'otherTasksMemory']
     ];
 
-    syncPairs.forEach(([sliderId, inputId, max]) => {
-      this.syncSliderAndInput(sliderId, inputId, max);
+    syncPairs.forEach(([sliderId, inputId, max, sliderType]) => {
+      this.syncSliderAndInput(sliderId, inputId, max, sliderType);
     });
   }
 
   /**
-   * Synchronize slider and text input values
+   * Synchronize slider and text input values with adaptive steps
    */
-  syncSliderAndInput(sliderId, inputId, max) {
+  syncSliderAndInput(sliderId, inputId, max, sliderType) {
     const slider = domCache.get(sliderId);
     const input = domCache.get(inputId);
 
     if (!slider || !input) return;
 
+    // Set initial step
+    this.updateSliderStep(slider, sliderType);
+
     slider.addEventListener('input', () => {
+      // Update step based on current value
+      this.updateSliderStep(slider, sliderType);
+      
       input.value = slider.value;
       this.debouncedCalculate();
     });
@@ -379,6 +411,10 @@ export class UIManager {
       
       input.value = value;
       slider.value = value;
+      
+      // Update step based on new value
+      this.updateSliderStep(slider, sliderType);
+      
       this.debouncedCalculate();
     });
 
@@ -667,38 +703,6 @@ export class UIManager {
     }).join('');
 
     domCache.setHTML('scoreBreakdown', breakdownHTML);
-  }
-
-  /**
-   * Update recommendations list
-   */
-  updateRecommendations(recommendations) {
-    const recommendationsHTML = recommendations
-      .map(rec => `<li class="mb-2">${rec}</li>`)
-      .join('');
-
-    const recommendationsContainer = domCache.get('scoreRecommendations');
-    if (recommendationsContainer) {
-      const ul = recommendationsContainer.querySelector('ul');
-      if (ul) {
-        ul.innerHTML = recommendationsHTML;
-      }
-    }
-  }
-
-  /**
-   * Announce message to screen readers
-   */
-  announceToScreenReader(message) {
-    const announcer = document.getElementById('screenReaderAnnouncements');
-    if (announcer) {
-      announcer.textContent = message;
-      
-      // Clear after a short delay to allow for re-announcements
-      setTimeout(() => {
-        announcer.textContent = '';
-      }, 1000);
-    }
   }
 
   /**
