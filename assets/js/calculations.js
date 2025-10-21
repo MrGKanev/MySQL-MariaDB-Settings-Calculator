@@ -144,19 +144,23 @@ export class MySQLCalculator {
    * Calculate optimal buffer pool percentage based on server characteristics
    */
   calculateOptimalBufferPoolPercentage(totalMemory, availableMemory, isDedicated, templateSettings) {
-    // Base percentage from research: 70-80% for dedicated servers
+    // Base percentage from research: 70-88% for dedicated servers, 75-88% for 64GB+
     let bufferPoolPercentage = CONSTANTS.BUFFER_POOL_PERCENTAGE; // 0.7
 
     if (isDedicated) {
       // For dedicated database servers, use higher percentages as recommended
-      if (totalMemory >= 64) {
-        // Very large dedicated servers: 75% (upper end of recommendation)
-        bufferPoolPercentage = 0.75;
+      // Research shows 75-88% is optimal for large servers (64GB+)
+      if (totalMemory >= 128) {
+        // Very large dedicated servers (128GB+): 85% - aggressive allocation
+        bufferPoolPercentage = 0.85;
+      } else if (totalMemory >= 64) {
+        // Large dedicated servers (64-128GB): 80% - research-backed optimal
+        bufferPoolPercentage = 0.80;
       } else if (totalMemory >= 32) {
-        // Large dedicated servers: 75%
+        // Medium-large dedicated servers: 75%
         bufferPoolPercentage = 0.75;
       } else if (totalMemory >= 16) {
-        // Medium dedicated servers: 70-75%
+        // Medium dedicated servers: 72%
         bufferPoolPercentage = 0.72;
       } else if (totalMemory >= 8) {
         // Small dedicated servers: 70%
@@ -164,7 +168,9 @@ export class MySQLCalculator {
       }
     } else {
       // For shared servers, be more conservative
-      if (totalMemory > 32) {
+      if (totalMemory > 64) {
+        bufferPoolPercentage = 0.65; // Conservative for very large shared servers
+      } else if (totalMemory > 32) {
         bufferPoolPercentage = 0.60; // Conservative for large shared servers
       } else if (totalMemory > 16) {
         bufferPoolPercentage = 0.65; // Moderate for medium shared servers
@@ -212,8 +218,10 @@ export class MySQLCalculator {
     );
 
     // Smart connections per GB based on server characteristics
+    // Research shows: connection pools typically need 100-500 connections max
+    // 1500+ is "uncommonly high"; each connection uses ~196KB + per-query buffers
     let connectionsPerGB = CONSTANTS.CONNECTIONS_PER_GB;
-    
+
     if (isDedicated) {
       // Dedicated servers can handle more connections per GB
       if (totalMemory < 4) {
@@ -234,6 +242,23 @@ export class MySQLCalculator {
       }
     }
 
+    // Calculate base connections, then apply realistic caps
+    let maxConnections = Math.floor(availableMemory * connectionsPerGB);
+
+    // Apply realistic connection caps based on server size
+    // Research: typical workloads need 100-500 connections, rarely more than 1500
+    if (totalMemory >= 128) {
+      maxConnections = Math.min(maxConnections, 2000); // Cap at 2000 for very large servers
+    } else if (totalMemory >= 64) {
+      maxConnections = Math.min(maxConnections, 1500); // Cap at 1500 for large servers
+    } else if (totalMemory >= 32) {
+      maxConnections = Math.min(maxConnections, 1000); // Cap at 1000 for medium servers
+    } else if (totalMemory >= 16) {
+      maxConnections = Math.min(maxConnections, 500); // Cap at 500 for smaller servers
+    } else {
+      maxConnections = Math.min(maxConnections, 300); // Cap at 300 for small servers
+    }
+
     const calculations = {
       // Core InnoDB settings with improved buffer pool calculation
       innodb_buffer_pool_size: Math.floor(availableMemoryBytes * bufferPoolPercentage),
@@ -246,8 +271,8 @@ export class MySQLCalculator {
       innodb_thread_concurrency: CONSTANTS.THREAD_CONCURRENCY,
       innodb_flush_neighbors: storageOpts.flushNeighbors,
 
-      // Connection settings adjusted for dedicated vs shared
-      max_connections: Math.floor(availableMemory * connectionsPerGB),
+      // Connection settings adjusted for dedicated vs shared, with realistic caps
+      max_connections: maxConnections,
 
       // MyISAM settings
       key_buffer_size: Math.floor(availableMemoryBytes * CONSTANTS.KEY_BUFFER_PERCENTAGE),
@@ -283,14 +308,36 @@ export class MySQLCalculator {
     // Calculate log file size based on buffer pool (25% is optimal for most workloads)
     calculations.innodb_log_file_size = Math.floor(calculations.innodb_buffer_pool_size * CONSTANTS.LOG_FILE_RATIO);
 
-    // Adjust IO capacity based on server characteristics and workload
-    if (isDedicated && totalMemory > 16) {
-      // Dedicated servers with substantial memory can handle higher IO capacity
-      calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.3);
-    } else if (totalMemory > 32) {
-      // Large servers get moderate boost
-      calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.2);
+    // Adjust IO capacity based on server characteristics, storage type, and workload
+    // Modern NVMe drives can handle much higher IOPS than the base calculation suggests
+    const storageType = inputs.storageType || 'ssd';
+
+    if (storageType === 'nvme') {
+      // NVMe systems benefit from more aggressive I/O settings
+      if (totalMemory >= 128) {
+        // Very large NVMe systems: 2.5x boost
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 2.5);
+      } else if (totalMemory >= 64) {
+        // Large NVMe systems: 2.0x boost
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 2.0);
+      } else if (totalMemory >= 32) {
+        // Medium NVMe systems: 1.5x boost
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.5);
+      } else if (isDedicated && totalMemory > 16) {
+        // Smaller dedicated NVMe: 1.3x boost
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.3);
+      }
+    } else if (storageType === 'ssd') {
+      // SSD systems get moderate boosts
+      if (isDedicated && totalMemory > 16) {
+        // Dedicated SSD servers with substantial memory
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.3);
+      } else if (totalMemory > 32) {
+        // Large SSD servers get moderate boost
+        calculations.innodb_io_capacity = Math.floor(calculations.innodb_io_capacity * 1.2);
+      }
     }
+    // HDD systems keep conservative settings (no additional boost)
 
     // Adjust temporary table sizes for analytical workloads
     if (templateSettings?.name?.toLowerCase() === 'olap') {
@@ -521,20 +568,47 @@ export class MySQLCalculator {
     const recommendations = [];
     const { availableMemory, totalMemory } = inputs;
 
-    // Memory allocation recommendations
+    // Warning for unrealistic connection counts
+    if (calculations.max_connections > 1500) {
+      recommendations.push("WARNING: Connection counts above 1500 are uncommonly high. Each connection uses ~196KB + per-query buffers. Consider using connection pooling at the application level to reduce server-side connections.");
+    } else if (calculations.max_connections > 1000) {
+      recommendations.push("NOTE: Your connection count is high. Verify this aligns with your actual concurrent user requirements. Connection pooling is recommended for most applications.");
+    }
+
+    // Warning about buffer pool instances ratio
+    const bufferPoolGB = convertBytesToGB(calculations.innodb_buffer_pool_size);
+    const expectedInstances = bufferPoolGB >= 64 ? bufferPoolGB : Math.ceil(bufferPoolGB / 2);
+    if (calculations.innodb_buffer_pool_instances < expectedInstances * 0.5 && bufferPoolGB >= 16) {
+      recommendations.push(`WARNING: Your buffer pool has ${calculations.innodb_buffer_pool_instances} instances for ${bufferPoolGB.toFixed(1)}GB. Research recommends 1 instance per 1-2GB of buffer pool (${expectedInstances} instances) to reduce contention on larger servers.`);
+    }
+
+    // Large server specific recommendations
+    if (totalMemory >= 64) {
+      const bufferPoolRatio = calculations.innodb_buffer_pool_size / convertGBToBytes(availableMemory);
+      if (bufferPoolRatio < 0.75) {
+        recommendations.push("NOTE: For dedicated servers with 64GB+ RAM, research shows 75-88% buffer pool allocation is optimal. The old '70% rule' wastes memory on large servers.");
+      }
+    }
+
     if (scores.memoryAllocation < 15) {
       const memoryRatio = availableMemory / totalMemory;
-      recommendations.push(
-        this.getMemoryAllocationRecommendation(memoryRatio)
-      );
+      if (memoryRatio < 0.6) {
+        recommendations.push("Consider allocating more memory to MySQL by reducing reserved memory or memory for other tasks. For dedicated database servers with 64GB+, aim for 75-85% of total memory available for MySQL.");
+      } else {
+        recommendations.push("Your memory allocation is reasonable, but could be optimized further for better performance.");
+      }
     }
 
     // Buffer pool size recommendations
     if (scores.bufferPoolSize < 15) {
       const bufferPoolRatio = calculations.innodb_buffer_pool_size / convertGBToBytes(availableMemory);
-      const recommendation = this.getBufferPoolRecommendation(bufferPoolRatio);
-      if (recommendation) {
-        recommendations.push(recommendation);
+      if (bufferPoolRatio < 0.6) {
+        const recommendation = totalMemory >= 64
+          ? "Increase innodb_buffer_pool_size to 75-85% of available memory for large dedicated servers (64GB+), or 60-70% for shared servers."
+          : "Increase innodb_buffer_pool_size to 70-80% of available memory for dedicated database servers, or 60-70% for shared servers.";
+        recommendations.push(recommendation + " This is the most critical MySQL performance setting.");
+      } else if (bufferPoolRatio > 0.88) {
+        recommendations.push("Your innodb_buffer_pool_size may be too large. Consider reducing it to 75-85% of available memory to leave space for other MySQL operations and OS processes.");
       }
     }
 
@@ -550,19 +624,30 @@ export class MySQLCalculator {
     // Connection settings recommendations
     if (scores.connections < 15) {
       const connectionsPerGB = calculations.max_connections / availableMemory;
-      recommendations.push(
-        this.getConnectionsRecommendation(connectionsPerGB)
-      );
+      if (connectionsPerGB > 150) {
+        recommendations.push("Your max_connections setting may be too high for available memory. Each connection uses memory; consider reducing connections or implementing connection pooling.");
+      } else if (calculations.max_connections < 100 && totalMemory >= 8) {
+        recommendations.push("Consider increasing max_connections based on your actual concurrent user requirements and available memory.");
+      }
     }
 
     // I/O settings recommendations
     if (scores.ioSettings < 15) {
-      const ioRecommendations = this.getIOSettingsRecommendations(
-        calculations,
-        availableMemory,
-        totalMemory
-      );
-      recommendations.push(...ioRecommendations);
+      const storageType = inputs.storageType || 'ssd';
+      if (calculations.innodb_io_capacity < availableMemory * 50) {
+        const storageAdvice = storageType === 'nvme'
+          ? "NVMe drives can handle 500+ IOPS per GB"
+          : storageType === 'ssd'
+          ? "SSDs can typically handle 200+ IOPS per GB"
+          : "Consider your storage capabilities";
+        recommendations.push(`Consider increasing innodb_io_capacity based on your storage capabilities. ${storageAdvice}.`);
+      }
+      if (calculations.innodb_read_io_threads < 4 || calculations.innodb_write_io_threads < 4) {
+        recommendations.push("Increase innodb_read_io_threads and innodb_write_io_threads to at least 4 each for better I/O performance on modern hardware.");
+      }
+      if (totalMemory >= 64 && (calculations.innodb_read_io_threads < 12 || calculations.innodb_write_io_threads < 12)) {
+        recommendations.push("Large servers (64GB+) benefit from 12-16 I/O threads to maximize parallel operations on modern storage.");
+      }
     }
 
     // Additional server-specific recommendations
