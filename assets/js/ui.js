@@ -474,15 +474,15 @@ export class UIManager {
    */
   async performCalculation() {
     try {
-      this.setLoadingState('calculation', true);
-
       const inputs = this.collectInputs();
 
-      // Validate inputs are numbers
+      // Validate inputs are numbers before setting loading state
       if (isNaN(inputs.totalMemory) || isNaN(inputs.reservedMemory) || isNaN(inputs.otherTasksMemory)) {
         this.showError('Invalid memory values. Please enter valid numbers.');
         return;
       }
+
+      this.setLoadingState('calculation', true);
 
       const templateSettings = templateManager.getCurrentTemplate();
 
@@ -491,6 +491,7 @@ export class UIManager {
 
       if (!results || !results.calculations) {
         this.showError('Calculation failed to produce valid results.');
+        this.setLoadingState('calculation', false);
         return;
       }
 
