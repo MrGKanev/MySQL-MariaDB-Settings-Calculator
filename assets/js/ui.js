@@ -477,15 +477,28 @@ export class UIManager {
       this.setLoadingState('calculation', true);
 
       const inputs = this.collectInputs();
+
+      // Validate inputs are numbers
+      if (isNaN(inputs.totalMemory) || isNaN(inputs.reservedMemory) || isNaN(inputs.otherTasksMemory)) {
+        this.showError('Invalid memory values. Please enter valid numbers.');
+        return;
+      }
+
       const templateSettings = templateManager.getCurrentTemplate();
-      
+
       // Perform calculation
       const results = mysqlCalculator.calculate(inputs, templateSettings);
+
+      if (!results || !results.calculations) {
+        this.showError('Calculation failed to produce valid results.');
+        return;
+      }
+
       this.currentResults = results;
 
       // Update UI with results
       this.updateCalculationResults(results);
-      
+
       // Update performance score
       this.updatePerformanceScore(results);
 
@@ -493,6 +506,12 @@ export class UIManager {
       this.hideConfigOutput();
 
     } catch (error) {
+      console.error('Error in performCalculation:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       this.showError('Error performing calculations. Please check your inputs.');
     } finally {
       this.setLoadingState('calculation', false);
@@ -616,20 +635,31 @@ export class UIManager {
    * Update performance score display
    */
   updatePerformanceScore(results) {
-    const scoreData = mysqlCalculator.calculatePerformanceScore(results);
-    const { totalScore, scores, recommendations } = scoreData;
+    try {
+      const scoreData = mysqlCalculator.calculatePerformanceScore(results);
+      if (!scoreData || typeof scoreData.totalScore === 'undefined') {
+        console.error('Invalid score data returned:', scoreData);
+        return;
+      }
 
-    // Update circular progress with improved styling
-    this.updateScoreCircleDisplay(totalScore);
-    
-    // Update score value
-    domCache.setText('scoreValue', totalScore.toString());
+      const { totalScore, scores, recommendations } = scoreData;
 
-    // Update score breakdown
-    this.updateScoreBreakdown(scores);
+      // Update circular progress with improved styling
+      this.updateScoreCircleDisplay(totalScore);
 
-    // Update recommendations
-    this.updateRecommendations(recommendations);
+      // Update score value
+      domCache.setText('scoreValue', totalScore.toString());
+
+      // Update score breakdown
+      this.updateScoreBreakdown(scores);
+
+      // Update recommendations
+      this.updateRecommendations(recommendations);
+    } catch (error) {
+      console.error('Error updating performance score:', error);
+      console.error('Error stack:', error.stack);
+      // Don't throw, just log - we don't want to break the whole calculation
+    }
   }
 
   /**
