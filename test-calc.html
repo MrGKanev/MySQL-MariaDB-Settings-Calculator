@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Calculation</title>
+</head>
+<body>
+    <h1>Test Calculation</h1>
+    <div id="result"></div>
+
+    <script type="module">
+        import { mysqlCalculator } from './assets/js/calculations.js';
+        import { templateManager } from './assets/js/templates.js';
+
+        try {
+            console.log('Starting test...');
+
+            const inputs = {
+                totalMemory: 1,
+                reservedMemory: 0,
+                otherTasksMemory: 0,
+                osType: 'linux',
+                storageType: 'ssd',
+                template: 'custom'
+            };
+
+            console.log('Inputs:', inputs);
+
+            const templateSettings = templateManager.getCurrentTemplate();
+            console.log('Template settings:', templateSettings);
+
+            const results = mysqlCalculator.calculate(inputs, templateSettings);
+            console.log('Results:', results);
+
+            const scoreData = mysqlCalculator.calculatePerformanceScore(results);
+            console.log('Score data:', scoreData);
+
+            document.getElementById('result').innerHTML = `
+                <h2>Test Passed!</h2>
+                <p>Total Memory: ${results.inputs.totalMemory} GB</p>
+                <p>Available Memory: ${results.inputs.availableMemory} GB</p>
+                <p>Performance Score: ${scoreData.totalScore}</p>
+                <p>Buffer Pool Size: ${results.calculations.innodb_buffer_pool_size} bytes</p>
+            `;
+
+        } catch (error) {
+            console.error('Test failed:', error);
+            console.error('Stack:', error.stack);
+            document.getElementById('result').innerHTML = `
+                <h2 style="color: red;">Test Failed!</h2>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <pre>${error.stack}</pre>
+            `;
+        }
+    </script>
+</body>
+</html>
