@@ -374,7 +374,7 @@ export class UIManager {
   setupSliderSync() {
     const syncPairs = [
       ['totalMemorySlider', 'totalMemory', 512, 'totalMemory'],
-      ['reservedMemorySlider', 'reservedMemory', 16, 'reservedMemory'],
+      ['reservedMemorySlider', 'reservedMemory', 256, 'reservedMemory'],
       ['otherTasksMemorySlider', 'otherTasksMemory', 256, 'otherTasksMemory']
     ];
 
@@ -505,10 +505,12 @@ export class UIManager {
       // Update UI with results
       this.updateCalculationResults(results);
 
-      // Update performance score - do this even if there are validation errors
-      // because updateCalculationResults will handle the error display
+      // Update performance score - always update, but show "Not Rated" for errors
       if (!results.validationErrors || results.validationErrors.length === 0) {
         this.updatePerformanceScore(results);
+      } else {
+        // Reset to "Not Rated" state when there are validation errors
+        this.resetPerformanceScore();
       }
 
       // Hide config output when inputs change
@@ -535,7 +537,7 @@ export class UIManager {
    */
   collectInputs() {
     return {
-      totalMemory: parseFloat(domCache.getValue('totalMemory')) || 1,
+      totalMemory: parseFloat(domCache.getValue('totalMemory')) || 16,
       reservedMemory: parseFloat(domCache.getValue('reservedMemory')) || 0,
       otherTasksMemory: parseFloat(domCache.getValue('otherTasksMemory')) || 0,
       osType: domCache.getValue('osType') || 'linux',
@@ -1027,8 +1029,8 @@ export class UIManager {
    * Reset form to default values
    */
   resetForm() {
-    domCache.setValue('totalMemory', 1);
-    domCache.setValue('totalMemorySlider', 1);
+    domCache.setValue('totalMemory', 16);
+    domCache.setValue('totalMemorySlider', 16);
     domCache.setValue('reservedMemory', 0);
     domCache.setValue('reservedMemorySlider', 0);
     domCache.setValue('otherTasksMemory', 0);
@@ -1036,11 +1038,11 @@ export class UIManager {
     domCache.setValue('osType', 'linux');
     domCache.setValue('storageType', 'ssd');
     domCache.setValue('workloadTemplate', 'custom');
-    
+
     templateManager.setTemplate('custom');
     this.hideError();
     this.hideConfigOutput();
-    
+
     this.debouncedCalculate();
   }
 }
