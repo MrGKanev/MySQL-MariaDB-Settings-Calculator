@@ -478,20 +478,25 @@ export class UIManager {
 
       // Validate inputs are numbers before setting loading state
       if (isNaN(inputs.totalMemory) || isNaN(inputs.reservedMemory) || isNaN(inputs.otherTasksMemory)) {
+        console.warn('Invalid memory values detected:', inputs);
         this.showError('Invalid memory values. Please enter valid numbers.');
+        this.resetPerformanceScore();
         return;
       }
 
       this.setLoadingState('calculation', true);
 
       const templateSettings = templateManager.getCurrentTemplate();
+      console.log('Performing calculation with inputs:', inputs, 'template:', templateSettings);
 
       // Perform calculation
       const results = mysqlCalculator.calculate(inputs, templateSettings);
 
       if (!results || !results.calculations) {
+        console.error('Calculation returned invalid results:', results);
         this.showError('Calculation failed to produce valid results.');
         this.setLoadingState('calculation', false);
+        this.resetPerformanceScore();
         return;
       }
 
@@ -500,11 +505,16 @@ export class UIManager {
       // Update UI with results
       this.updateCalculationResults(results);
 
-      // Update performance score
-      this.updatePerformanceScore(results);
+      // Update performance score - do this even if there are validation errors
+      // because updateCalculationResults will handle the error display
+      if (!results.validationErrors || results.validationErrors.length === 0) {
+        this.updatePerformanceScore(results);
+      }
 
       // Hide config output when inputs change
       this.hideConfigOutput();
+
+      console.log('Calculation completed successfully');
 
     } catch (error) {
       console.error('Error in performCalculation:', error);
@@ -514,6 +524,7 @@ export class UIManager {
         name: error.name
       });
       this.showError('Error performing calculations. Please check your inputs.');
+      this.resetPerformanceScore();
     } finally {
       this.setLoadingState('calculation', false);
     }
@@ -542,7 +553,14 @@ export class UIManager {
 
     // Show validation errors if any
     if (validationErrors && validationErrors.length > 0) {
+      console.warn('Validation errors found:', validationErrors);
       this.showError(validationErrors[0]);
+      this.resetPerformanceScore();
+      // Still show partial results if we have calculations
+      if (calculations) {
+        const resultsHTML = this.buildResultsHTML(inputs, calculations);
+        domCache.setHTML('results', resultsHTML);
+      }
       return;
     } else {
       this.hideError();
@@ -640,6 +658,7 @@ export class UIManager {
       const scoreData = mysqlCalculator.calculatePerformanceScore(results);
       if (!scoreData || typeof scoreData.totalScore === 'undefined') {
         console.error('Invalid score data returned:', scoreData);
+        this.resetPerformanceScore();
         return;
       }
 
@@ -659,7 +678,47 @@ export class UIManager {
     } catch (error) {
       console.error('Error updating performance score:', error);
       console.error('Error stack:', error.stack);
-      // Don't throw, just log - we don't want to break the whole calculation
+      this.resetPerformanceScore();
+    }
+  }
+
+  /**
+   * Reset performance score to default state
+   */
+  resetPerformanceScore() {
+    try {
+      // Reset score value to 0
+      domCache.setText('scoreValue', '0');
+
+      // Reset score circle
+      const circle = document.getElementById('scoreCircle');
+      if (circle) {
+        const circumference = 2 * Math.PI * 42;
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+        circle.style.strokeDashoffset = circumference;
+        circle.style.stroke = '#ef4444'; // Red for error state
+      }
+
+      // Reset score grade
+      const scoreGrade = document.getElementById('scoreGrade');
+      if (scoreGrade) {
+        scoreGrade.textContent = 'N/A';
+        scoreGrade.className = 'text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600';
+      }
+
+      // Clear score breakdown
+      domCache.setHTML('scoreBreakdown', '<p class="text-zinc-500 col-span-2">Enter valid configuration to see score breakdown.</p>');
+
+      // Clear recommendations
+      const recommendationsContainer = domCache.get('scoreRecommendations');
+      if (recommendationsContainer) {
+        const ul = recommendationsContainer.querySelector('ul');
+        if (ul) {
+          ul.innerHTML = '<li class="text-zinc-500">Fix configuration errors to see recommendations.</li>';
+        }
+      }
+    } catch (error) {
+      console.error('Error resetting performance score:', error);
     }
   }
 

@@ -88,10 +88,15 @@ export class MySQLCalculator {
    */
   performCalculations(inputs, templateSettings) {
     const { totalMemory, reservedMemory, otherTasksMemory, osType, storageType } = inputs;
-    
-    // Calculate available memory
-    const availableMemory = Math.max(0, totalMemory - reservedMemory - otherTasksMemory);
+
+    // Calculate available memory with safeguard
+    const availableMemory = Math.max(0.1, totalMemory - reservedMemory - otherTasksMemory);
     const availableMemoryBytes = convertGBToBytes(availableMemory);
+
+    // Ensure we have minimum viable memory
+    if (availableMemory < 0.1) {
+      console.warn('Available memory is too low:', availableMemory, 'GB. Using minimum of 0.1 GB');
+    }
 
     // Get storage optimizations
     const storageOpts = getStorageOptimizations(storageType);
