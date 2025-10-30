@@ -40,13 +40,30 @@ jobs:
           publish_dir: .
           destination_dir: pr-${{ github.event.pull_request.number }}
           publish_branch: gh-pages
+          cname: database.gkanev.com
+
+      - name: Get custom domain
+        id: get-domain
+        run: |
+          # Check if CNAME file exists in gh-pages branch
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            CNAME=$(git show origin/gh-pages:CNAME 2>/dev/null || echo "")
+            if [ -n "$CNAME" ]; then
+              echo "domain=$CNAME" >> $GITHUB_OUTPUT
+            else
+              echo "domain=${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "domain=${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Comment PR
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = context.issue.number;
-            const previewUrl = `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${prNumber}/`;
+            const domain = '${{ steps.get-domain.outputs.domain }}';
+            const previewUrl = `https://${domain}/pr-${prNumber}/`;
 
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
