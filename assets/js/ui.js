@@ -487,7 +487,6 @@ export class UIManager {
       this.setLoadingState('calculation', true);
 
       const templateSettings = templateManager.getCurrentTemplate();
-      console.log('Performing calculation with inputs:', inputs, 'template:', templateSettings);
 
       // Perform calculation
       const results = mysqlCalculator.calculate(inputs, templateSettings);
@@ -515,8 +514,6 @@ export class UIManager {
 
       // Hide config output when inputs change
       this.hideConfigOutput();
-
-      console.log('Calculation completed successfully');
 
     } catch (error) {
       console.error('Error in performCalculation:', error);
