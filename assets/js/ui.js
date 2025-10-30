@@ -658,8 +658,25 @@ export class UIManager {
   updatePerformanceScore(results) {
     try {
       const scoreData = mysqlCalculator.calculatePerformanceScore(results);
-      if (!scoreData || typeof scoreData.totalScore === 'undefined') {
-        console.error('Invalid score data returned:', scoreData);
+
+      // Validate score data
+      if (!scoreData) {
+        console.error('Performance score calculation returned null/undefined');
+        this.resetPerformanceScore();
+        return;
+      }
+
+      if (typeof scoreData.totalScore === 'undefined') {
+        console.error('Performance score missing totalScore property', scoreData);
+        this.resetPerformanceScore();
+        return;
+      }
+
+      if (isNaN(scoreData.totalScore)) {
+        console.error('Performance score is NaN - check calculation inputs', {
+          inputs: results.inputs,
+          calculations: results.calculations
+        });
         this.resetPerformanceScore();
         return;
       }
@@ -679,7 +696,11 @@ export class UIManager {
       this.updateRecommendations(recommendations);
     } catch (error) {
       console.error('Error updating performance score:', error);
-      console.error('Error stack:', error.stack);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        inputs: results?.inputs
+      });
       this.resetPerformanceScore();
     }
   }
@@ -801,16 +822,37 @@ export class UIManager {
    * Update recommendations list
    */
   updateRecommendations(recommendations) {
-    const recommendationsHTML = recommendations
-      .map(rec => `<li class="mb-2">${rec}</li>`)
-      .join('');
-
-    const recommendationsContainer = domCache.get('scoreRecommendations');
-    if (recommendationsContainer) {
-      const ul = recommendationsContainer.querySelector('ul');
-      if (ul) {
-        ul.innerHTML = recommendationsHTML;
+    try {
+      // Ensure recommendations is always an array
+      if (!Array.isArray(recommendations)) {
+        console.error('Recommendations is not an array, using fallback:', recommendations);
+        recommendations = ['Unable to generate recommendations. Please check your configuration.'];
       }
+
+      // Provide a default message if empty
+      if (recommendations.length === 0) {
+        recommendations = ['Your MySQL/MariaDB configuration is well optimized for your hardware. Monitor cache hit ratios and query performance to fine-tune further based on your specific workload patterns.'];
+      }
+
+      const recommendationsHTML = recommendations
+        .map(rec => `<li class="mb-2">${rec}</li>`)
+        .join('');
+
+      const recommendationsContainer = domCache.get('scoreRecommendations');
+      if (!recommendationsContainer) {
+        console.error('Recommendations container element not found in DOM');
+        return;
+      }
+
+      const ul = recommendationsContainer.querySelector('ul');
+      if (!ul) {
+        console.error('Recommendations list element not found in DOM');
+        return;
+      }
+
+      ul.innerHTML = recommendationsHTML;
+    } catch (error) {
+      console.error('Error updating recommendations:', error);
     }
   }
 
