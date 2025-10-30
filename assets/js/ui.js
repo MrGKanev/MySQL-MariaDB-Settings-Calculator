@@ -12,7 +12,7 @@ export class UIManager {
     this.isInitialized = false;
     this.currentResults = null;
     this.loadingStates = new Set();
-    this.debouncedCalculate = debounce(this.performCalculation.bind(this), 300);
+    this.debouncedCalculate = debounce(this.performCalculation.bind(this), 150);
   }
 
   /**
@@ -246,8 +246,8 @@ export class UIManager {
     }
 
     const helpContent = `
-      <div class="help-modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" role="dialog" aria-labelledby="help-title" aria-modal="true">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+      <div class="help-modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" role="dialog" aria-labelledby="help-title" aria-modal="true" onclick="if(event.target === this) this.remove();">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation();">
           <div class="p-6">
             <h2 id="help-title" class="text-2xl font-bold mb-4 text-blue-600">MySQL/MariaDB Calculator Help</h2>
             
