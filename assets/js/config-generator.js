@@ -383,23 +383,63 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
   }
 
   /**
-   * Load configuration from URL parameters
+   * Load configuration from URL parameters with validation
    */
   loadFromURL() {
     const params = new URLSearchParams(window.location.search);
-    
+
     if (!params.has('totalMemory')) {
       return null;
     }
 
+    // Parse and validate numeric values with safe bounds
+    const totalMemory = this.validateNumericParam(params.get('totalMemory'), 1, 512, 16);
+    const reservedMemory = this.validateNumericParam(params.get('reservedMemory'), 0, 256, 0);
+    const otherTasksMemory = this.validateNumericParam(params.get('otherTasksMemory'), 0, 256, 0);
+
+    // Validate enum values
+    const validOsTypes = ['linux', 'windows', 'macos'];
+    const validStorageTypes = ['nvme', 'ssd', 'hdd'];
+    const validTemplates = ['custom', 'oltp', 'olap', 'mixed', 'webserver', 'smallserver'];
+
+    const osType = this.validateEnumParam(params.get('osType'), validOsTypes, 'linux');
+    const storageType = this.validateEnumParam(params.get('storageType'), validStorageTypes, 'ssd');
+    const template = this.validateEnumParam(params.get('template'), validTemplates, 'custom');
+
+    // Ensure reserved + other doesn't exceed total
+    const maxReservable = totalMemory - 1; // Leave at least 1GB for MySQL
+    const safeReservedMemory = Math.min(reservedMemory, maxReservable);
+    const safeOtherTasksMemory = Math.min(otherTasksMemory, maxReservable - safeReservedMemory);
+
     return {
-      totalMemory: parseFloat(params.get('totalMemory')) || 1,
-      reservedMemory: parseFloat(params.get('reservedMemory')) || 0,
-      otherTasksMemory: parseFloat(params.get('otherTasksMemory')) || 0,
-      osType: params.get('osType') || 'linux',
-      storageType: params.get('storageType') || 'ssd',
-      template: params.get('template') || 'custom'
+      totalMemory,
+      reservedMemory: safeReservedMemory,
+      otherTasksMemory: safeOtherTasksMemory,
+      osType,
+      storageType,
+      template
     };
+  }
+
+  /**
+   * Validate and clamp a numeric parameter
+   */
+  validateNumericParam(value, min, max, defaultValue) {
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || !isFinite(parsed)) {
+      return defaultValue;
+    }
+    return Math.max(min, Math.min(max, parsed));
+  }
+
+  /**
+   * Validate an enum parameter against allowed values
+   */
+  validateEnumParam(value, allowedValues, defaultValue) {
+    if (!value || !allowedValues.includes(value.toLowerCase())) {
+      return defaultValue;
+    }
+    return value.toLowerCase();
   }
 
   /**

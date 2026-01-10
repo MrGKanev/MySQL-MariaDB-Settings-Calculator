@@ -41,7 +41,76 @@ export const CONSTANTS = {
     nvme: 200,
     ssd: 100,
     hdd: 50
-  }
+  },
+
+  // Server size thresholds (in GB) for tiered calculations
+  SERVER_SIZE_THRESHOLDS: {
+    VERY_LARGE: 128,
+    LARGE: 64,
+    MEDIUM_LARGE: 32,
+    MEDIUM: 16,
+    SMALL: 8,
+    VERY_SMALL: 4
+  },
+
+  // Buffer pool percentages by server size (dedicated servers)
+  DEDICATED_BUFFER_POOL_PERCENTAGES: {
+    VERY_LARGE: 0.85,  // 128GB+
+    LARGE: 0.80,       // 64-128GB
+    MEDIUM_LARGE: 0.75, // 32-64GB
+    MEDIUM: 0.72,      // 16-32GB
+    SMALL: 0.70        // 8-16GB
+  },
+
+  // Buffer pool percentages for shared servers
+  SHARED_BUFFER_POOL_PERCENTAGES: {
+    VERY_LARGE: 0.65,
+    LARGE: 0.60,
+    MEDIUM: 0.65,
+    SMALL: 0.50
+  },
+
+  // Connections per GB by server type
+  CONNECTIONS_PER_GB_DEDICATED: {
+    SMALL: 80,
+    LARGE: 120,
+    DEFAULT: 100
+  },
+
+  CONNECTIONS_PER_GB_SHARED: {
+    SMALL: 60,
+    LARGE: 80,
+    DEFAULT: 75
+  },
+
+  // Max connections caps by server size
+  MAX_CONNECTIONS_CAPS: {
+    VERY_LARGE: 2000,
+    LARGE: 1500,
+    MEDIUM_LARGE: 1000,
+    MEDIUM: 500,
+    SMALL: 300
+  },
+
+  // NVMe IO capacity multipliers by server size
+  NVME_IO_MULTIPLIERS: {
+    VERY_LARGE: 2.5,
+    LARGE: 2.0,
+    MEDIUM_LARGE: 1.5,
+    DEDICATED_MEDIUM: 1.3
+  },
+
+  // SSD IO capacity multipliers
+  SSD_IO_MULTIPLIERS: {
+    DEDICATED_MEDIUM: 1.3,
+    LARGE: 1.2
+  },
+
+  // Memory ratio thresholds
+  DEDICATED_SERVER_THRESHOLD: 0.2, // < 20% reserved = dedicated
+
+  // Calculation cache size
+  CALCULATION_CACHE_SIZE: 15
 };
 
 // Helper functions

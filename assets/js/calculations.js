@@ -58,8 +58,8 @@ export class MySQLCalculator {
 
     const results = this.performCalculations(inputs, templateSettings);
     
-    // Cache results (keep only last 5 calculations to prevent memory issues)
-    if (this.calculationCache.size >= 5) {
+    // Cache results (keep only last N calculations for better slider responsiveness)
+    if (this.calculationCache.size >= CONSTANTS.CALCULATION_CACHE_SIZE) {
       const firstKey = this.calculationCache.keys().next().value;
       this.calculationCache.delete(firstKey);
     }
@@ -147,60 +147,57 @@ export class MySQLCalculator {
 
   /**
    * Calculate optimal buffer pool percentage based on server characteristics
+   * Uses centralized constants for maintainability
    */
   calculateOptimalBufferPoolPercentage(totalMemory, availableMemory, isDedicated, templateSettings) {
+    const { SERVER_SIZE_THRESHOLDS, DEDICATED_BUFFER_POOL_PERCENTAGES, SHARED_BUFFER_POOL_PERCENTAGES } = CONSTANTS;
+
     // Base percentage from research: 70-88% for dedicated servers, 75-88% for 64GB+
-    let bufferPoolPercentage = CONSTANTS.BUFFER_POOL_PERCENTAGE; // 0.7
+    let bufferPoolPercentage = CONSTANTS.BUFFER_POOL_PERCENTAGE;
 
     if (isDedicated) {
       // For dedicated database servers, use higher percentages as recommended
-      // Research shows 75-88% is optimal for large servers (64GB+)
-      if (totalMemory >= 128) {
-        // Very large dedicated servers (128GB+): 85% - aggressive allocation
-        bufferPoolPercentage = 0.85;
-      } else if (totalMemory >= 64) {
-        // Large dedicated servers (64-128GB): 80% - research-backed optimal
-        bufferPoolPercentage = 0.80;
-      } else if (totalMemory >= 32) {
-        // Medium-large dedicated servers: 75%
-        bufferPoolPercentage = 0.75;
-      } else if (totalMemory >= 16) {
-        // Medium dedicated servers: 72%
-        bufferPoolPercentage = 0.72;
-      } else if (totalMemory >= 8) {
-        // Small dedicated servers: 70%
-        bufferPoolPercentage = 0.70;
+      if (totalMemory >= SERVER_SIZE_THRESHOLDS.VERY_LARGE) {
+        bufferPoolPercentage = DEDICATED_BUFFER_POOL_PERCENTAGES.VERY_LARGE;
+      } else if (totalMemory >= SERVER_SIZE_THRESHOLDS.LARGE) {
+        bufferPoolPercentage = DEDICATED_BUFFER_POOL_PERCENTAGES.LARGE;
+      } else if (totalMemory >= SERVER_SIZE_THRESHOLDS.MEDIUM_LARGE) {
+        bufferPoolPercentage = DEDICATED_BUFFER_POOL_PERCENTAGES.MEDIUM_LARGE;
+      } else if (totalMemory >= SERVER_SIZE_THRESHOLDS.MEDIUM) {
+        bufferPoolPercentage = DEDICATED_BUFFER_POOL_PERCENTAGES.MEDIUM;
+      } else if (totalMemory >= SERVER_SIZE_THRESHOLDS.SMALL) {
+        bufferPoolPercentage = DEDICATED_BUFFER_POOL_PERCENTAGES.SMALL;
       }
     } else {
       // For shared servers, be more conservative
-      if (totalMemory > 64) {
-        bufferPoolPercentage = 0.65; // Conservative for very large shared servers
-      } else if (totalMemory > 32) {
-        bufferPoolPercentage = 0.60; // Conservative for large shared servers
-      } else if (totalMemory > 16) {
-        bufferPoolPercentage = 0.65; // Moderate for medium shared servers
-      } else if (totalMemory <= 4) {
-        bufferPoolPercentage = 0.50; // Very conservative for small shared servers
+      if (totalMemory > SERVER_SIZE_THRESHOLDS.LARGE) {
+        bufferPoolPercentage = SHARED_BUFFER_POOL_PERCENTAGES.VERY_LARGE;
+      } else if (totalMemory > SERVER_SIZE_THRESHOLDS.MEDIUM_LARGE) {
+        bufferPoolPercentage = SHARED_BUFFER_POOL_PERCENTAGES.LARGE;
+      } else if (totalMemory > SERVER_SIZE_THRESHOLDS.MEDIUM) {
+        bufferPoolPercentage = SHARED_BUFFER_POOL_PERCENTAGES.MEDIUM;
+      } else if (totalMemory <= SERVER_SIZE_THRESHOLDS.VERY_SMALL) {
+        bufferPoolPercentage = SHARED_BUFFER_POOL_PERCENTAGES.SMALL;
       }
     }
 
     // Additional workload-based adjustments
     if (templateSettings) {
       const templateName = templateSettings.name?.toLowerCase();
-      
+
       // Read-heavy workloads benefit from larger buffer pools
       if (templateName === 'olap') {
-        bufferPoolPercentage = Math.min(0.80, bufferPoolPercentage + 0.05);
+        bufferPoolPercentage = Math.min(DEDICATED_BUFFER_POOL_PERCENTAGES.LARGE, bufferPoolPercentage + 0.05);
       }
-      
+
       // Web servers typically share resources, so be more conservative
       if (templateName === 'webserver') {
-        bufferPoolPercentage = Math.max(0.50, bufferPoolPercentage - 0.10);
+        bufferPoolPercentage = Math.max(SHARED_BUFFER_POOL_PERCENTAGES.SMALL, bufferPoolPercentage - 0.10);
       }
-      
+
       // Small servers should always be conservative
       if (templateName === 'smallserver') {
-        bufferPoolPercentage = 0.50;
+        bufferPoolPercentage = SHARED_BUFFER_POOL_PERCENTAGES.SMALL;
       }
     }
 

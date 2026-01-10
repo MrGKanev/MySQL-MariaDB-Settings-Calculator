@@ -102,58 +102,48 @@ export class UIManager {
 
   /**
    * Setup new UI buttons added in the refactoring
+   * Uses domCache for consistent DOM access
    */
   setupNewUIButtons() {
     // Help button
-    const helpButton = document.getElementById('helpButton');
-    if (helpButton) {
-      helpButton.addEventListener('click', () => {
-        this.showHelpModal();
-      });
-    }
+    domCache.addEventListener('helpButton', 'click', () => {
+      this.showHelpModal();
+    });
 
     // Share button
-    const shareButton = document.getElementById('shareButton');
-    if (shareButton) {
-      shareButton.addEventListener('click', () => {
-        this.handleShareConfig();
-      });
-    }
+    domCache.addEventListener('shareButton', 'click', () => {
+      this.handleShareConfig();
+    });
 
     // Reset button
-    const resetButton = document.getElementById('resetButton');
-    if (resetButton) {
-      resetButton.addEventListener('click', () => {
-        this.handleResetForm();
-      });
-    }
+    domCache.addEventListener('resetButton', 'click', () => {
+      this.handleResetForm();
+    });
 
     // Config copy button in the output area
-    const configCopyBtn = document.getElementById('configCopyBtn');
-    if (configCopyBtn) {
-      configCopyBtn.addEventListener('click', () => {
-        this.handleCopyConfig();
-      });
-    }
+    domCache.addEventListener('configCopyBtn', 'click', () => {
+      this.handleCopyConfig();
+    });
   }
 
   /**
    * Setup export dropdown functionality
+   * Uses domCache for consistent DOM access
    */
   setupExportDropdown() {
-    const exportBtn = document.getElementById('exportOptionsBtn');
-    const exportMenu = document.getElementById('exportMenu');
+    const exportBtn = domCache.get('exportOptionsBtn');
+    const exportMenu = domCache.get('exportMenu');
 
     if (exportBtn && exportMenu) {
       exportBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = exportMenu.classList.contains('hidden');
-        
+        const isOpen = domCache.hasClass('exportMenu', 'hidden');
+
         if (isOpen) {
-          exportMenu.classList.remove('hidden');
+          domCache.show('exportMenu');
           exportBtn.setAttribute('aria-expanded', 'true');
         } else {
-          exportMenu.classList.add('hidden');
+          domCache.hide('exportMenu');
           exportBtn.setAttribute('aria-expanded', 'false');
         }
       });
@@ -164,7 +154,7 @@ export class UIManager {
         option.addEventListener('click', (e) => {
           e.stopPropagation();
           this.handleExportOption(option);
-          exportMenu.classList.add('hidden');
+          domCache.hide('exportMenu');
           exportBtn.setAttribute('aria-expanded', 'false');
         });
       });
@@ -237,7 +227,7 @@ export class UIManager {
   }
 
   /**
-   * Show help modal
+   * Show help modal with proper event listener cleanup
    */
   showHelpModal() {
     const existingModal = document.querySelector('.help-modal');
@@ -245,99 +235,142 @@ export class UIManager {
       existingModal.remove();
     }
 
-    const helpContent = `
-      <div class="help-modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" role="dialog" aria-labelledby="help-title" aria-modal="true" onclick="if(event.target === this) this.remove();">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation();">
-          <div class="p-6">
-            <h2 id="help-title" class="text-2xl font-bold mb-4 text-blue-600">MySQL/MariaDB Calculator Help</h2>
-            
-            <div class="space-y-4">
-              <section>
-                <h3 class="text-lg font-semibold mb-2">Keyboard Shortcuts</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl/Cmd + G</kbd> Generate config</div>
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl/Cmd + C</kbd> Copy config (when visible)</div>
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">F1</kbd> or <kbd class="bg-zinc-100 px-2 py-1 rounded">Shift + ?</kbd> Show help</div>
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Shift + Arrow</kbd> Fine-tune sliders (0.1 increments)</div>
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl + Arrow</kbd> Coarse-tune sliders (10 increments)</div>
-                  <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Home/End</kbd> Min/Max slider values</div>
-                </div>
-              </section>
+    // Store reference to escape handler for cleanup
+    let escapeHandler = null;
 
-              <section>
-                <h3 class="text-lg font-semibold mb-2">Usage Tips</h3>
-                <ul class="list-disc list-inside space-y-1 text-sm">
-                  <li>Use workload templates for common configurations</li>
-                  <li>Monitor the performance score for optimization guidance</li>
-                  <li>Always test configurations in development first</li>
-                  <li>Consider your actual workload patterns when choosing settings</li>
-                  <li>Leave adequate memory for the operating system</li>
-                  <li>Use the share feature to save and share configurations</li>
-                </ul>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold mb-2">Workload Templates</h3>
-                <div class="grid grid-cols-1 gap-2 text-sm">
-                  <div><strong>OLTP:</strong> High concurrency, fast transactions, strong consistency</div>
-                  <div><strong>OLAP:</strong> Complex queries, data analysis, large result sets</div>
-                  <div><strong>Mixed:</strong> Balanced for most applications with varied workloads</div>
-                  <div><strong>Web Server:</strong> Optimized for web applications with database backend</div>
-                  <div><strong>Small VPS:</strong> Conservative settings for limited resources</div>
-                </div>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold mb-2">Export Options</h3>
-                <ul class="list-disc list-inside space-y-1 text-sm">
-                  <li><strong>my.cnf:</strong> Standard MySQL configuration file</li>
-                  <li><strong>JSON:</strong> Structured data format for automation</li>
-                  <li><strong>Docker Compose:</strong> Environment variables for containers</li>
-                  <li><strong>Copy to Clipboard:</strong> Quick sharing and pasting</li>
-                </ul>
-              </section>
-            </div>
-            
-            <div class="mt-6 flex justify-end">
-              <button onclick="this.closest('.help-modal').remove()" 
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', helpContent);
-
-    // Focus management
-    const modal = document.querySelector('.help-modal');
-    const closeButton = modal.querySelector('button');
-    closeButton.focus();
-
-    // Close on Escape key
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
+    // Cleanup function to properly remove all event listeners
+    const closeModal = () => {
+      const modal = document.querySelector('.help-modal');
+      if (modal) {
         modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-        document.getElementById('helpButton')?.focus(); // Return focus
+      }
+      if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
+      document.getElementById('helpButton')?.focus();
+    };
+
+    escapeHandler = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
       }
     };
-    document.addEventListener('keydown', handleEscape);
+
+    // Build modal using DOM methods for better security
+    const modal = document.createElement('div');
+    modal.className = 'help-modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-labelledby', 'help-title');
+    modal.setAttribute('aria-modal', 'true');
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Static help content (safe - no user input)
+    const helpHTML = this.getHelpModalContent();
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto';
+    contentWrapper.innerHTML = helpHTML;
+
+    // Setup close button with proper event listener
+    const closeButton = contentWrapper.querySelector('.help-modal-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', closeModal);
+    }
+
+    modal.appendChild(contentWrapper);
+    document.body.appendChild(modal);
+
+    // Focus management
+    if (closeButton) {
+      closeButton.focus();
+    }
+
+    // Setup escape key handler
+    document.addEventListener('keydown', escapeHandler);
 
     this.announceToScreenReader('Help modal opened');
   }
 
   /**
+   * Get static help modal content (no user input - safe for innerHTML)
+   */
+  getHelpModalContent() {
+    return `
+      <div class="p-6">
+        <h2 id="help-title" class="text-2xl font-bold mb-4 text-blue-600">MySQL/MariaDB Calculator Help</h2>
+
+        <div class="space-y-4">
+          <section>
+            <h3 class="text-lg font-semibold mb-2">Keyboard Shortcuts</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl/Cmd + G</kbd> Generate config</div>
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl/Cmd + C</kbd> Copy config (when visible)</div>
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">F1</kbd> or <kbd class="bg-zinc-100 px-2 py-1 rounded">Shift + ?</kbd> Show help</div>
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Shift + Arrow</kbd> Fine-tune sliders (0.1 increments)</div>
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Ctrl + Arrow</kbd> Coarse-tune sliders (10 increments)</div>
+              <div><kbd class="bg-zinc-100 px-2 py-1 rounded">Home/End</kbd> Min/Max slider values</div>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="text-lg font-semibold mb-2">Usage Tips</h3>
+            <ul class="list-disc list-inside space-y-1 text-sm">
+              <li>Use workload templates for common configurations</li>
+              <li>Monitor the performance score for optimization guidance</li>
+              <li>Always test configurations in development first</li>
+              <li>Consider your actual workload patterns when choosing settings</li>
+              <li>Leave adequate memory for the operating system</li>
+              <li>Use the share feature to save and share configurations</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 class="text-lg font-semibold mb-2">Workload Templates</h3>
+            <div class="grid grid-cols-1 gap-2 text-sm">
+              <div><strong>OLTP:</strong> High concurrency, fast transactions, strong consistency</div>
+              <div><strong>OLAP:</strong> Complex queries, data analysis, large result sets</div>
+              <div><strong>Mixed:</strong> Balanced for most applications with varied workloads</div>
+              <div><strong>Web Server:</strong> Optimized for web applications with database backend</div>
+              <div><strong>Small VPS:</strong> Conservative settings for limited resources</div>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="text-lg font-semibold mb-2">Export Options</h3>
+            <ul class="list-disc list-inside space-y-1 text-sm">
+              <li><strong>my.cnf:</strong> Standard MySQL configuration file</li>
+              <li><strong>JSON:</strong> Structured data format for automation</li>
+              <li><strong>Docker Compose:</strong> Environment variables for containers</li>
+              <li><strong>Copy to Clipboard:</strong> Quick sharing and pasting</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button class="help-modal-close bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Handle clicks outside dropdowns
+   * Uses domCache for consistent DOM access
    */
   handleClickOutside(e) {
-    const exportMenu = document.getElementById('exportMenu');
-    const exportBtn = document.getElementById('exportOptionsBtn');
-    
+    const exportMenu = domCache.get('exportMenu');
+    const exportBtn = domCache.get('exportOptionsBtn');
+
     if (exportMenu && !exportMenu.contains(e.target) && !exportBtn?.contains(e.target)) {
-      exportMenu.classList.add('hidden');
+      domCache.hide('exportMenu');
       exportBtn?.setAttribute('aria-expanded', 'false');
     }
   }
@@ -471,6 +504,7 @@ export class UIManager {
 
   /**
    * Perform MySQL calculations and update UI
+   * Uses batch DOM updates for better performance
    */
   async performCalculation() {
     try {
@@ -501,19 +535,23 @@ export class UIManager {
 
       this.currentResults = results;
 
-      // Update UI with results
-      this.updateCalculationResults(results);
+      // Batch all DOM updates together to prevent layout thrashing
+      domCache.batchUpdate([
+        // Update UI with results
+        () => this.updateCalculationResults(results),
 
-      // Update performance score - always update, but show "Not Rated" for errors
-      if (!results.validationErrors || results.validationErrors.length === 0) {
-        this.updatePerformanceScore(results);
-      } else {
-        // Reset to "Not Rated" state when there are validation errors
-        this.resetPerformanceScore();
-      }
+        // Update performance score - always update, but show "Not Rated" for errors
+        () => {
+          if (!results.validationErrors || results.validationErrors.length === 0) {
+            this.updatePerformanceScore(results);
+          } else {
+            this.resetPerformanceScore();
+          }
+        },
 
-      // Hide config output when inputs change
-      this.hideConfigOutput();
+        // Hide config output when inputs change
+        () => this.hideConfigOutput()
+      ]);
 
     } catch (error) {
       console.error('Error in performCalculation:', error);
@@ -704,14 +742,15 @@ export class UIManager {
 
   /**
    * Reset performance score to default state
+   * Uses domCache for consistent DOM access
    */
   resetPerformanceScore() {
     try {
       // Reset score value to 0
       domCache.setText('scoreValue', '0');
 
-      // Reset score circle
-      const circle = document.getElementById('scoreCircle');
+      // Reset score circle using domCache
+      const circle = domCache.get('scoreCircle');
       if (circle) {
         const circumference = 2 * Math.PI * 42;
         circle.style.strokeDasharray = `${circumference} ${circumference}`;
@@ -719,8 +758,8 @@ export class UIManager {
         circle.style.stroke = '#ef4444'; // Red for error state
       }
 
-      // Reset score grade
-      const scoreGrade = document.getElementById('scoreGrade');
+      // Reset score grade using domCache
+      const scoreGrade = domCache.get('scoreGrade');
       if (scoreGrade) {
         scoreGrade.textContent = 'N/A';
         scoreGrade.className = 'text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600';
@@ -734,7 +773,11 @@ export class UIManager {
       if (recommendationsContainer) {
         const ul = recommendationsContainer.querySelector('ul');
         if (ul) {
-          ul.innerHTML = '<li class="text-zinc-500">Fix configuration errors to see recommendations.</li>';
+          ul.textContent = '';
+          const li = document.createElement('li');
+          li.className = 'text-zinc-500';
+          li.textContent = 'Fix configuration errors to see recommendations.';
+          ul.appendChild(li);
         }
       }
     } catch (error) {
@@ -744,11 +787,12 @@ export class UIManager {
 
   /**
    * Update the circular score indicator with improved styling
+   * Uses domCache for consistent DOM access
    */
   updateScoreCircleDisplay(score) {
-    const circle = document.getElementById('scoreCircle');
-    const scoreGrade = document.getElementById('scoreGrade');
-    
+    const circle = domCache.get('scoreCircle');
+    const scoreGrade = domCache.get('scoreGrade');
+
     if (!circle) return;
 
     const circumference = 2 * Math.PI * 42; // radius = 42
