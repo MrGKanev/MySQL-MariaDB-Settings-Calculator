@@ -106,7 +106,7 @@ export class MySQLCalculator {
     
     // Apply template settings if provided
     if (templateSettings) {
-      calculations = this.applyTemplateSettings(calculations, templateSettings, availableMemory, availableMemoryBytes);
+      calculations = this.applyTemplateSettings(calculations, templateSettings, availableMemory, availableMemoryBytes, totalMemory);
     }
 
     // Add OS-specific settings
@@ -352,7 +352,7 @@ export class MySQLCalculator {
   /**
    * Apply template settings to base calculations
    */
-  applyTemplateSettings(baseCalculations, templateSettings, availableMemory, availableMemoryBytes) {
+  applyTemplateSettings(baseCalculations, templateSettings, availableMemory, availableMemoryBytes, totalMemory) {
     const calculations = { ...baseCalculations };
 
     // Apply template percentages
@@ -375,9 +375,24 @@ export class MySQLCalculator {
     }
 
     if (templateSettings.max_connections_per_gb) {
-      calculations.max_connections = Math.floor(
+      let maxConnections = Math.floor(
         availableMemory * templateSettings.max_connections_per_gb
       );
+
+      // Apply realistic caps based on server size (same as base calculation)
+      if (totalMemory >= 128) {
+        maxConnections = Math.min(maxConnections, 2000);
+      } else if (totalMemory >= 64) {
+        maxConnections = Math.min(maxConnections, 1500);
+      } else if (totalMemory >= 32) {
+        maxConnections = Math.min(maxConnections, 1000);
+      } else if (totalMemory >= 16) {
+        maxConnections = Math.min(maxConnections, 500);
+      } else {
+        maxConnections = Math.min(maxConnections, 300);
+      }
+
+      calculations.max_connections = maxConnections;
     }
 
     if (templateSettings.sort_buffer_size_percentage) {

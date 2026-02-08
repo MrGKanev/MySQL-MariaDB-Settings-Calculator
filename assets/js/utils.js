@@ -133,6 +133,23 @@ export function formatBytes(bytes) {
   return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
 }
 
+/**
+ * Format bytes as MySQL config-friendly value (e.g., 256M, 12G)
+ */
+export function formatBytesMySQL(bytes) {
+  if (bytes === 0) return '0';
+  if (bytes >= 1073741824 && bytes % 1073741824 === 0) {
+    return (bytes / 1073741824) + 'G';
+  }
+  if (bytes >= 1048576 && bytes % 1048576 === 0) {
+    return (bytes / 1048576) + 'M';
+  }
+  if (bytes >= 1024 && bytes % 1024 === 0) {
+    return (bytes / 1024) + 'K';
+  }
+  return String(bytes);
+}
+
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }

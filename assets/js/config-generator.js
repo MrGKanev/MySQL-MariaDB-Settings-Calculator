@@ -1,4 +1,4 @@
-import { formatBytes } from './utils.js';
+import { formatBytesMySQL } from './utils.js';
 
 /**
  * Configuration Generator for MySQL/MariaDB
@@ -116,27 +116,28 @@ export class ConfigGenerator {
     lines.push('');
 
     // Memory settings
+    const fmt = formatBytesMySQL;
     lines.push('# Memory Settings');
-    lines.push(`innodb_buffer_pool_size        = ${calculations.innodb_buffer_pool_size}`);
+    lines.push(`innodb_buffer_pool_size        = ${fmt(calculations.innodb_buffer_pool_size)}`);
     lines.push(`innodb_buffer_pool_instances   = ${calculations.innodb_buffer_pool_instances}`);
-    lines.push(`key_buffer_size                = ${calculations.key_buffer_size}`);
-    
+    lines.push(`key_buffer_size                = ${fmt(calculations.key_buffer_size)}`);
+
     // Query cache (MySQL 5.7/MariaDB only)
     if (!mysqlVersion.startsWith('8.')) {
-      lines.push(`query_cache_size               = ${calculations.query_cache_size}`);
+      lines.push(`query_cache_size               = ${fmt(calculations.query_cache_size)}`);
       lines.push(`query_cache_type               = ${calculations.query_cache_size > 0 ? 1 : 0}`);
     } else if (includeComments) {
       lines.push('# Note: query_cache is removed in MySQL 8.0+');
-      lines.push(`# query_cache_size               = ${calculations.query_cache_size}`);
+      lines.push(`# query_cache_size               = ${fmt(calculations.query_cache_size)}`);
       lines.push(`# query_cache_type               = ${calculations.query_cache_size > 0 ? 1 : 0}`);
     }
 
-    lines.push(`tmp_table_size                 = ${calculations.tmp_table_size}`);
-    lines.push(`max_heap_table_size            = ${calculations.tmp_table_size}`);
-    lines.push(`sort_buffer_size               = ${calculations.sort_buffer_size}`);
-    lines.push(`read_buffer_size               = ${calculations.read_buffer_size}`);
-    lines.push(`read_rnd_buffer_size           = ${calculations.read_rnd_buffer_size}`);
-    lines.push(`join_buffer_size               = ${calculations.join_buffer_size}`);
+    lines.push(`tmp_table_size                 = ${fmt(calculations.tmp_table_size)}`);
+    lines.push(`max_heap_table_size            = ${fmt(calculations.tmp_table_size)}`);
+    lines.push(`sort_buffer_size               = ${fmt(calculations.sort_buffer_size)}`);
+    lines.push(`read_buffer_size               = ${fmt(calculations.read_buffer_size)}`);
+    lines.push(`read_rnd_buffer_size           = ${fmt(calculations.read_rnd_buffer_size)}`);
+    lines.push(`join_buffer_size               = ${fmt(calculations.join_buffer_size)}`);
     lines.push(`table_definition_cache         = ${calculations.table_definition_cache}`);
     lines.push(`table_open_cache               = ${calculations.table_open_cache}`);
     lines.push('');
@@ -151,8 +152,8 @@ export class ConfigGenerator {
 
     // InnoDB settings
     lines.push('# InnoDB Settings');
-    lines.push(`innodb_log_file_size           = ${calculations.innodb_log_file_size}`);
-    lines.push(`innodb_log_buffer_size         = ${calculations.innodb_log_buffer_size}`);
+    lines.push(`innodb_log_file_size           = ${fmt(calculations.innodb_log_file_size)}`);
+    lines.push(`innodb_log_buffer_size         = ${fmt(calculations.innodb_log_buffer_size)}`);
     lines.push(`innodb_flush_log_at_trx_commit = ${calculations.innodb_flush_log_at_trx_commit}`);
     lines.push(`innodb_flush_method            = ${calculations.innodb_flush_method}`);
     lines.push(`innodb_file_per_table          = ${calculations.innodb_file_per_table}`);
