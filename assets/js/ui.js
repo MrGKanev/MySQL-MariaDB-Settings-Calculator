@@ -666,10 +666,17 @@ export class UIManager {
       ['innodb_flush_neighbors', 'innodb-parameters.html#sysvar_innodb_flush_neighbors']
     ];
 
+    const byteSettings = new Set([
+      'innodb_buffer_pool_size', 'key_buffer_size', 'innodb_log_file_size',
+      'query_cache_size', 'tmp_table_size', 'innodb_log_buffer_size',
+      'sort_buffer_size', 'read_buffer_size', 'read_rnd_buffer_size',
+      'join_buffer_size'
+    ]);
+
     return settings.map(([setting, docPath]) => {
       const value = calculations[setting];
-      const formattedValue = typeof value === 'number' && value > 1024 
-        ? formatBytes(value) 
+      const formattedValue = typeof value === 'number' && byteSettings.has(setting)
+        ? formatBytes(value)
         : value;
 
       const docUrl = docPath.includes('5.7') 
