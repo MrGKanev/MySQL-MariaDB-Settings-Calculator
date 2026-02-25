@@ -1,7 +1,9 @@
 import { domCache } from './dom-cache.js';
 import { formatBytes, debounce } from './utils.js';
 import { mysqlCalculator } from './calculations.js';
+import { postgresqlCalculator } from './pg-calculations.js';
 import { templateManager } from './templates.js';
+import { PG_WORKLOAD_TEMPLATES } from './pg-templates.js';
 import { configGenerator } from './config-generator.js';
 
 /**
@@ -11,6 +13,7 @@ export class UIManager {
   constructor() {
     this.isInitialized = false;
     this.currentResults = null;
+    this.currentDbType = 'mysql';
     this.loadingStates = new Set();
     this.debouncedCalculate = debounce(this.performCalculation.bind(this), 150);
   }
@@ -51,6 +54,14 @@ export class UIManager {
    * Setup event listeners for all interactive elements
    */
   setupEventListeners() {
+    // Database type toggle
+    domCache.addEventListener('dbToggleMySQL', 'click', () => {
+      this.switchDatabaseType('mysql');
+    });
+    domCache.addEventListener('dbTogglePostgreSQL', 'click', () => {
+      this.switchDatabaseType('postgresql');
+    });
+
     // Template selection
     domCache.addEventListener('workloadTemplate', 'change', (e) => {
       this.handleTemplateChange(e.target.value);
@@ -162,6 +173,351 @@ export class UIManager {
   }
 
   /**
+   * Switch between MySQL and PostgreSQL modes
+   */
+  switchDatabaseType(dbType) {
+    if (this.currentDbType === dbType) return;
+    this.currentDbType = dbType;
+
+    const isPostgres = dbType === 'postgresql';
+    const mysqlBtn = domCache.get('dbToggleMySQL');
+    const pgBtn = domCache.get('dbTogglePostgreSQL');
+
+    // Update toggle styling
+    if (mysqlBtn && pgBtn) {
+      if (isPostgres) {
+        mysqlBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-colors text-zinc-600';
+        mysqlBtn.setAttribute('aria-checked', 'false');
+        pgBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white';
+        pgBtn.setAttribute('aria-checked', 'true');
+      } else {
+        mysqlBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white';
+        mysqlBtn.setAttribute('aria-checked', 'true');
+        pgBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-colors text-zinc-600';
+        pgBtn.setAttribute('aria-checked', 'false');
+      }
+    }
+
+    // Update page title and document title
+    domCache.setText('pageTitle', isPostgres
+      ? 'PostgreSQL Settings Calculator'
+      : 'MySQL/MariaDB Settings Calculator');
+    document.title = isPostgres
+      ? 'PostgreSQL Performance Calculator - Optimize Database Settings | Gabriel Kanev'
+      : 'MySQL/MariaDB & PostgreSQL Performance Calculator - Optimize Database Settings | Gabriel Kanev';
+
+    // Update page description
+    domCache.setText('pageDescription', isPostgres
+      ? 'Generate optimized PostgreSQL configurations based on your server specifications'
+      : 'Generate optimized database configurations based on your server specifications');
+
+    // Swap workload template options
+    this.updateTemplateOptions(isPostgres);
+
+    // Update help text
+    this.updateHelpText(isPostgres);
+
+    // Update action button labels
+    this.updateButtonLabels(isPostgres);
+
+    // Update FAQ content
+    this.updateFaqContent(isPostgres);
+
+    // Update sidebar links
+    this.updateSidebarContent(isPostgres);
+
+    // Update export menu first item
+    this.updateExportMenu(isPostgres);
+
+    // Hide stale config output
+    this.hideConfigOutput();
+
+    // Re-run calculation
+    this.debouncedCalculate();
+
+    // Screen reader announcement
+    this.announceToScreenReader(`Switched to ${isPostgres ? 'PostgreSQL' : 'MySQL/MariaDB'} mode`);
+  }
+
+  /**
+   * Update template dropdown options for database type
+   */
+  updateTemplateOptions(isPostgres) {
+    const select = domCache.get('workloadTemplate');
+    if (!select) return;
+
+    if (isPostgres) {
+      select.innerHTML = `
+        <option value="custom">Custom Configuration</option>
+        <option value="pg_oltp">OLTP (Online Transaction Processing)</option>
+        <option value="pg_olap">OLAP (Online Analytical Processing)</option>
+        <option value="pg_mixed">Mixed Workload</option>
+        <option value="pg_webserver">Web Application</option>
+        <option value="pg_smallserver">Small VPS Server</option>
+      `;
+    } else {
+      select.innerHTML = `
+        <option value="custom">Custom Configuration</option>
+        <option value="oltp">OLTP (Online Transaction Processing)</option>
+        <option value="olap">OLAP (Online Analytical Processing)</option>
+        <option value="mixed">Mixed Workload</option>
+        <option value="webserver">Web Server</option>
+        <option value="smallserver">Small VPS Server</option>
+      `;
+    }
+    select.value = 'custom';
+    templateManager.setTemplate('custom');
+
+    // Remove template info display
+    const infoElement = document.getElementById('templateInfo');
+    if (infoElement) infoElement.remove();
+  }
+
+  /**
+   * Update help text for storage/OS fields based on db type
+   */
+  updateHelpText(isPostgres) {
+    const osHelp = document.getElementById('osType-help');
+    if (osHelp) {
+      osHelp.textContent = isPostgres
+        ? 'Affects huge_pages setting recommendation'
+        : 'Affects optimal InnoDB flush method settings';
+    }
+
+    const storageHelp = document.getElementById('storageType-help');
+    if (storageHelp) {
+      storageHelp.textContent = isPostgres
+        ? 'Affects random_page_cost and effective_io_concurrency settings'
+        : 'Affects InnoDB I/O optimizations and flush neighbors setting';
+    }
+  }
+
+  /**
+   * Update action button labels for database type
+   */
+  updateButtonLabels(isPostgres) {
+    const generateBtn = domCache.get('generateConfigBtn');
+    if (generateBtn) {
+      generateBtn.textContent = isPostgres ? 'Generate postgresql.conf File' : 'Generate my.cnf File';
+    }
+
+    const downloadBtn = domCache.get('downloadConfigBtn');
+    if (downloadBtn) {
+      downloadBtn.textContent = isPostgres ? 'Download postgresql.conf' : 'Download my.cnf';
+    }
+  }
+
+  /**
+   * Update FAQ content for database type
+   */
+  updateFaqContent(isPostgres) {
+    const faqContainer = domCache.get('faqContent');
+    if (!faqContainer) return;
+
+    if (isPostgres) {
+      faqContainer.innerHTML = `
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            What is shared_buffers?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            shared_buffers sets the amount of memory PostgreSQL uses for shared memory buffers.
+            The recommended starting point is 25% of total system memory. Unlike MySQL's buffer pool,
+            PostgreSQL relies heavily on the OS page cache, so setting this too high can actually hurt performance.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            What is effective_cache_size?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            effective_cache_size provides an estimate to the query planner of how much memory is available
+            for disk caching. It includes both shared_buffers and OS file system cache. A good starting
+            value is 75% of total system memory. This setting does not allocate memory - it only informs the planner.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            How does work_mem affect queries?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            work_mem sets the amount of memory used for sort operations and hash tables before writing
+            to temporary disk files. A single complex query can use multiple units of work_mem simultaneously.
+            Setting this too high with many connections can exhaust memory; too low causes frequent disk spills.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            Why use a connection pooler?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            PostgreSQL creates a new process for each connection, using about 10MB of memory each.
+            Connection poolers like PgBouncer or pgpool-II multiplex many client connections over fewer
+            server connections, dramatically reducing memory usage and improving performance.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            What does random_page_cost control?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            random_page_cost tells the query planner the estimated cost of a non-sequential disk page fetch.
+            For SSDs and NVMe drives, set this to 1.1 (close to sequential cost). For HDDs, the default of
+            4.0 is appropriate. Incorrect values can cause the planner to choose suboptimal query plans.
+          </p>
+        </details>
+        <details>
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            Are these settings optimal for all scenarios?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            No, these are general recommendations based on PostgreSQL best practices. Optimal settings
+            depend on your specific workload, data size, and query patterns. Use pg_stat_statements,
+            EXPLAIN ANALYZE, and monitoring tools like pgBadger to fine-tune for your environment.
+          </p>
+        </details>
+      `;
+    } else {
+      faqContainer.innerHTML = `
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            What is innodb_buffer_pool_size?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to
+            cache data and indexes of its tables. This is the most important MySQL configuration
+            setting for performance.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            How is max_connections calculated?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            In this calculator, max_connections is estimated based on available memory and
+            workload type.
+            The actual optimal value depends on your specific workload, connection pooling, and
+            server configuration.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            Why is some memory reserved for the OS?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            Reserving memory for the OS ensures that the system has enough resources to run
+            smoothly,
+            preventing potential slowdowns or crashes due to memory exhaustion. A good rule of
+            thumb is 10-20% of total RAM.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            Are these settings optimal for all scenarios?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            No, these are general recommendations. The optimal settings can vary greatly
+            depending on
+            your specific use case, workload patterns, and hardware. Always monitor your
+            system's performance and adjust accordingly.
+          </p>
+        </details>
+        <details class="border-b border-zinc-200 pb-4">
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            Why do different storage types matter?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            SSDs and NVMe drives have much higher IOPS (Input/Output Operations Per Second) than
+            traditional HDDs. Settings like innodb_io_capacity, innodb_flush_neighbors, and
+            innodb_flush_method should be optimized differently based on your storage type.
+          </p>
+        </details>
+        <details>
+          <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+            How is innodb_flush_method chosen?
+          </summary>
+          <p class="mt-2 text-zinc-700">
+            The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
+            generally recommended as it bypasses the filesystem cache. For Windows, unbuffered
+            is typically best, while macOS often works best with fsync.
+          </p>
+        </details>
+      `;
+    }
+  }
+
+  /**
+   * Update sidebar links for database type
+   */
+  updateSidebarContent(isPostgres) {
+    const sidebarContainer = domCache.get('sidebarContent');
+    if (!sidebarContainer) return;
+
+    const linkClass = 'text-blue-500 hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded';
+
+    if (isPostgres) {
+      sidebarContainer.innerHTML = `
+        <section class="mb-4">
+          <h3 class="text-lg font-semibold mb-2">PostgreSQL Tutorials</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://www.postgresql.org/docs/current/tutorial.html" class="${linkClass}" target="_blank" rel="noopener">PostgreSQL Official Tutorial</a></li>
+            <li><a href="https://www.postgresqltutorial.com/" class="${linkClass}" target="_blank" rel="noopener">PostgreSQL Tutorial</a></li>
+          </ul>
+        </section>
+        <section class="mb-4">
+          <h3 class="text-lg font-semibold mb-2">Performance Tuning</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://wiki.postgresql.org/wiki/Tuning_Your_PostgreSQL_Server" class="${linkClass}" target="_blank" rel="noopener">Tuning Your PostgreSQL Server</a></li>
+            <li><a href="https://pgtune.leopard.in.ua/" class="${linkClass}" target="_blank" rel="noopener">PGTune - Configuration Calculator</a></li>
+          </ul>
+        </section>
+        <section>
+          <h3 class="text-lg font-semibold mb-2">Documentation</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://www.postgresql.org/docs/current/" class="${linkClass}" target="_blank" rel="noopener">PostgreSQL Documentation</a></li>
+            <li><a href="https://www.postgresql.org/docs/current/runtime-config.html" class="${linkClass}" target="_blank" rel="noopener">Server Configuration</a></li>
+          </ul>
+        </section>
+      `;
+    } else {
+      sidebarContainer.innerHTML = `
+        <section class="mb-4">
+          <h3 class="text-lg font-semibold mb-2">MySQL Tutorials</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://dev.mysql.com/doc/refman/8.0/en/tutorial.html" class="${linkClass}" target="_blank" rel="noopener">MySQL Official Tutorial</a></li>
+            <li><a href="https://www.w3schools.com/mysql/" class="${linkClass}" target="_blank" rel="noopener">W3Schools MySQL Tutorial</a></li>
+          </ul>
+        </section>
+        <section class="mb-4">
+          <h3 class="text-lg font-semibold mb-2">MariaDB Tutorials</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://mariadb.com/kb/en/training-tutorials/" class="${linkClass}" target="_blank" rel="noopener">MariaDB Tutorials</a></li>
+            <li><a href="https://www.tutorialspoint.com/mariadb/" class="${linkClass}" target="_blank" rel="noopener">TutorialsPoint MariaDB Tutorial</a></li>
+          </ul>
+        </section>
+        <section>
+          <h3 class="text-lg font-semibold mb-2">Documentation</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><a href="https://dev.mysql.com/doc/" class="${linkClass}" target="_blank" rel="noopener">MySQL Documentation</a></li>
+            <li><a href="https://mariadb.com/kb/en/documentation/" class="${linkClass}" target="_blank" rel="noopener">MariaDB Documentation</a></li>
+          </ul>
+        </section>
+      `;
+    }
+  }
+
+  /**
+   * Update export menu for database type
+   */
+  updateExportMenu(isPostgres) {
+    const exportConfigBtn = domCache.get('exportConfigBtn');
+    if (exportConfigBtn) {
+      exportConfigBtn.textContent = isPostgres ? 'Download postgresql.conf' : 'Download my.cnf';
+      exportConfigBtn.dataset.format = isPostgres ? 'postgresql.conf' : 'my.cnf';
+    }
+  }
+
+  /**
    * Handle export option selection
    */
   async handleExportOption(option) {
@@ -177,7 +533,9 @@ export class UIManager {
       if (action === 'copy') {
         await this.handleCopyConfig();
       } else if (format) {
-        const result = await configGenerator.exportToFile(this.currentResults, format);
+        const result = await configGenerator.exportToFile(this.currentResults, format, null, {
+          databaseType: this.currentDbType
+        });
         this.showSuccessMessage('exportOptionsBtn', 'Downloaded!', 2000);
         this.announceToScreenReader(`${format} configuration downloaded successfully`);
       }
@@ -199,10 +557,11 @@ export class UIManager {
       const shareableURL = configGenerator.generateShareableURL(this.currentResults);
       
       // Try to use Web Share API if available
+      const dbLabel = this.currentDbType === 'postgresql' ? 'PostgreSQL' : 'MySQL/MariaDB';
       if (navigator.share) {
         await navigator.share({
-          title: 'MySQL/MariaDB Configuration',
-          text: 'Check out this optimized MySQL/MariaDB configuration',
+          title: `${dbLabel} Configuration`,
+          text: `Check out this optimized ${dbLabel} configuration`,
           url: shareableURL
         });
       } else {
@@ -459,12 +818,20 @@ export class UIManager {
    * Handle template selection changes
    */
   handleTemplateChange(templateName) {
-    const template = templateManager.setTemplate(templateName);
-    
+    let template;
+    if (this.currentDbType === 'postgresql') {
+      // Look up from PG templates directly
+      template = templateName === 'custom' ? null : PG_WORKLOAD_TEMPLATES[templateName] || null;
+      // Still set on templateManager for consistency
+      templateManager.setTemplate('custom');
+    } else {
+      template = templateManager.setTemplate(templateName);
+    }
+
     if (template && template.characteristics) {
       this.showTemplateInfo(template);
     }
-    
+
     this.debouncedCalculate();
   }
 
@@ -520,10 +887,20 @@ export class UIManager {
 
       this.setLoadingState('calculation', true);
 
-      const templateSettings = templateManager.getCurrentTemplate();
+      // Select calculator and template settings based on database type
+      let templateSettings;
+      let results;
 
-      // Perform calculation
-      const results = mysqlCalculator.calculate(inputs, templateSettings);
+      if (this.currentDbType === 'postgresql') {
+        const pgTemplateName = domCache.getValue('workloadTemplate');
+        templateSettings = pgTemplateName && pgTemplateName !== 'custom'
+          ? PG_WORKLOAD_TEMPLATES[pgTemplateName] || null
+          : null;
+        results = postgresqlCalculator.calculate(inputs, templateSettings);
+      } else {
+        templateSettings = templateManager.getCurrentTemplate();
+        results = mysqlCalculator.calculate(inputs, templateSettings);
+      }
 
       if (!results || !results.calculations) {
         console.error('Calculation returned invalid results:', results);
@@ -577,7 +954,8 @@ export class UIManager {
       otherTasksMemory: parseFloat(domCache.getValue('otherTasksMemory')) || 0,
       osType: domCache.getValue('osType') || 'linux',
       storageType: domCache.getValue('storageType') || 'ssd',
-      template: domCache.getValue('workloadTemplate') || 'custom'
+      template: domCache.getValue('workloadTemplate') || 'custom',
+      dbType: this.currentDbType
     };
   }
 
@@ -614,6 +992,8 @@ export class UIManager {
   buildResultsHTML(inputs, calculations) {
     const { totalMemory, reservedMemory, otherTasksMemory, availableMemory } = inputs;
 
+    const dbLabel = this.currentDbType === 'postgresql' ? 'PostgreSQL' : 'MySQL/MariaDB';
+
     return `
       <h2 class="text-xl font-semibold mb-3 text-blue-600">Memory Allocation</h2>
       <div class="grid grid-cols-2 gap-2 mb-4">
@@ -623,17 +1003,17 @@ export class UIManager {
         <div>${formatBytes(reservedMemory * 1024 * 1024 * 1024)}</div>
         <div>Other Tasks:</div>
         <div>${formatBytes(otherTasksMemory * 1024 * 1024 * 1024)}</div>
-        <div class="font-semibold">Available for MySQL/MariaDB:</div>
+        <div class="font-semibold">Available for ${dbLabel}:</div>
         <div class="font-semibold">${formatBytes(availableMemory * 1024 * 1024 * 1024)}</div>
       </div>
-      
+
       <h2 class="text-xl font-semibold mb-3 text-blue-600">Recommended Settings</h2>
       <div class="grid grid-cols-2 gap-2">
-        ${this.generateSettingsRows(calculations)}
+        ${this.currentDbType === 'postgresql' ? this.generatePostgreSQLSettingsRows(calculations) : this.generateSettingsRows(calculations)}
       </div>
-      
+
       <p class="mt-4 text-sm text-zinc-600">
-        <strong>Note:</strong> These are general recommendations based on your inputs. 
+        <strong>Note:</strong> These are general recommendations based on your inputs.
         Always test configurations in a development environment and monitor performance in production.
       </p>
     `;
@@ -695,11 +1075,62 @@ export class UIManager {
   }
 
   /**
+   * Generate PostgreSQL settings rows HTML
+   */
+  generatePostgreSQLSettingsRows(calculations) {
+    const settings = [
+      ['shared_buffers', 'runtime-config-resource.html#GUC-SHARED-BUFFERS'],
+      ['effective_cache_size', 'runtime-config-query.html#GUC-EFFECTIVE-CACHE-SIZE'],
+      ['work_mem', 'runtime-config-resource.html#GUC-WORK-MEM'],
+      ['maintenance_work_mem', 'runtime-config-resource.html#GUC-MAINTENANCE-WORK-MEM'],
+      ['wal_buffers', 'runtime-config-wal.html#GUC-WAL-BUFFERS'],
+      ['max_wal_size', 'runtime-config-wal.html#GUC-MAX-WAL-SIZE'],
+      ['min_wal_size', 'runtime-config-wal.html#GUC-MIN-WAL-SIZE'],
+      ['checkpoint_completion_target', 'runtime-config-wal.html#GUC-CHECKPOINT-COMPLETION-TARGET'],
+      ['random_page_cost', 'runtime-config-query.html#GUC-RANDOM-PAGE-COST'],
+      ['effective_io_concurrency', 'runtime-config-resource.html#GUC-EFFECTIVE-IO-CONCURRENCY'],
+      ['max_connections', 'runtime-config-connection.html#GUC-MAX-CONNECTIONS'],
+      ['max_worker_processes', 'runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES'],
+      ['max_parallel_workers_per_gather', 'runtime-config-resource.html#GUC-MAX-PARALLEL-WORKERS-PER-GATHER'],
+      ['max_parallel_workers', 'runtime-config-resource.html#GUC-MAX-PARALLEL-WORKERS'],
+      ['max_parallel_maintenance_workers', 'runtime-config-resource.html#GUC-MAX-PARALLEL-MAINTENANCE-WORKERS'],
+      ['default_statistics_target', 'runtime-config-query.html#GUC-DEFAULT-STATISTICS-TARGET'],
+      ['huge_pages', 'runtime-config-resource.html#GUC-HUGE-PAGES']
+    ];
+
+    const byteSettings = new Set([
+      'shared_buffers', 'effective_cache_size', 'work_mem',
+      'maintenance_work_mem', 'wal_buffers'
+    ]);
+
+    return settings.map(([setting, docPath]) => {
+      const value = calculations[setting];
+      if (value === undefined) return '';
+
+      const formattedValue = typeof value === 'number' && byteSettings.has(setting)
+        ? formatBytes(value)
+        : value;
+
+      const docUrl = `https://www.postgresql.org/docs/current/${docPath}`;
+
+      return `
+        <div>
+          <a href="${docUrl}" target="_blank" class="text-blue-500 hover:underline" rel="noopener">
+            ${setting}
+          </a> =
+        </div>
+        <div>${formattedValue}</div>
+      `;
+    }).join('');
+  }
+
+  /**
    * Update performance score display
    */
   updatePerformanceScore(results) {
     try {
-      const scoreData = mysqlCalculator.calculatePerformanceScore(results);
+      const calculator = this.currentDbType === 'postgresql' ? postgresqlCalculator : mysqlCalculator;
+      const scoreData = calculator.calculatePerformanceScore(results);
 
       // Validate score data
       if (!scoreData) {
@@ -931,7 +1362,8 @@ export class UIManager {
     try {
       this.setLoadingState('config-generation', true);
 
-      const config = configGenerator.generateConfig(this.currentResults, 'my.cnf', {
+      const configFormat = this.currentDbType === 'postgresql' ? 'postgresql.conf' : 'my.cnf';
+      const config = configGenerator.generateConfig(this.currentResults, configFormat, {
         includeComments: true,
         mysqlVersion: '8.0',
         includeReplication: true,
@@ -955,7 +1387,8 @@ export class UIManager {
    */
   async handleCopyConfig() {
     try {
-      await configGenerator.copyToClipboard(this.currentResults, 'my.cnf');
+      const configFormat = this.currentDbType === 'postgresql' ? 'postgresql.conf' : 'my.cnf';
+      await configGenerator.copyToClipboard(this.currentResults, configFormat);
       this.showSuccessMessage('copyConfigBtn', 'Copied!', 2000);
     } catch (error) {
       this.showError('Failed to copy to clipboard. Please try selecting and copying manually.');
@@ -967,7 +1400,8 @@ export class UIManager {
    */
   async handleDownloadConfig() {
     try {
-      const result = await configGenerator.exportToFile(this.currentResults, 'my.cnf');
+      const configFormat = this.currentDbType === 'postgresql' ? 'postgresql.conf' : 'my.cnf';
+      const result = await configGenerator.exportToFile(this.currentResults, configFormat);
       this.showSuccessMessage('downloadConfigBtn', 'Downloaded!', 2000);
     } catch (error) {
       this.showError('Failed to download configuration file.');
@@ -1000,12 +1434,18 @@ export class UIManager {
     const config = configGenerator.loadFromURL();
     if (!config) return;
 
+    // Switch database type if specified
+    if (config.dbType && config.dbType !== 'mysql') {
+      this.switchDatabaseType(config.dbType);
+    }
+
     // Populate inputs
     Object.entries(config).forEach(([key, value]) => {
+      if (key === 'dbType') return; // Already handled
       const element = domCache.get(key);
       if (element) {
         element.value = value;
-        
+
         // Also update corresponding slider
         const slider = domCache.get(key + 'Slider');
         if (slider) {
@@ -1016,7 +1456,13 @@ export class UIManager {
 
     // Set template
     if (config.template) {
-      templateManager.setTemplate(config.template);
+      if (this.currentDbType === 'postgresql') {
+        // For PG mode, just set the dropdown value
+        const select = domCache.get('workloadTemplate');
+        if (select) select.value = config.template;
+      } else {
+        templateManager.setTemplate(config.template);
+      }
     }
   }
 
@@ -1079,11 +1525,13 @@ export class UIManager {
     // Update UI based on loading states
     const anyLoading = this.loadingStates.size > 0;
     
+    const configLabel = this.currentDbType === 'postgresql' ? 'postgresql.conf' : 'my.cnf';
+
     if (operation === 'calculation') {
       const button = domCache.get('generateConfigBtn');
       if (button) {
         button.disabled = isLoading;
-        button.textContent = isLoading ? 'Calculating...' : 'Generate my.cnf File';
+        button.textContent = isLoading ? 'Calculating...' : `Generate ${configLabel} File`;
       }
     }
 
@@ -1091,7 +1539,7 @@ export class UIManager {
       const button = domCache.get('generateConfigBtn');
       if (button) {
         button.disabled = isLoading;
-        button.textContent = isLoading ? 'Generating...' : 'Generate my.cnf File';
+        button.textContent = isLoading ? 'Generating...' : `Generate ${configLabel} File`;
       }
     }
   }
@@ -1119,6 +1567,11 @@ export class UIManager {
    * Reset form to default values
    */
   resetForm() {
+    // Reset to MySQL mode if not already
+    if (this.currentDbType !== 'mysql') {
+      this.switchDatabaseType('mysql');
+    }
+
     domCache.setValue('totalMemory', 16);
     domCache.setValue('totalMemorySlider', 16);
     domCache.setValue('reservedMemory', 0);

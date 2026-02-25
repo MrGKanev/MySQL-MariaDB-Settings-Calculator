@@ -4,27 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MySQL/MariaDB Performance Calculator - Optimize Database Settings | Gabriel Kanev</title>
+    <title>MySQL/MariaDB & PostgreSQL Performance Calculator - Optimize Database Settings | Gabriel Kanev</title>
     <meta name="description"
-        content="Free online tool to optimize MySQL and MariaDB settings based on your server's memory. Get tailored recommendations for buffer sizes, connections, and configuration parameters for maximum database performance.">
+        content="Free online tool to optimize MySQL, MariaDB, and PostgreSQL settings based on your server's memory. Generate optimal my.cnf and postgresql.conf configurations with tailored recommendations for buffer sizes, connections, and performance parameters.">
     <meta name="keywords"
-        content="MySQL optimizer, MariaDB performance, database tuning, my.cnf generator, innodb buffer size calculator, max connections calculator, MySQL configuration, MariaDB settings, database performance tuning">
+        content="MySQL optimizer, MariaDB performance, PostgreSQL tuning, database tuning, my.cnf generator, postgresql.conf generator, innodb buffer size calculator, shared_buffers calculator, max connections calculator, MySQL configuration, MariaDB settings, PostgreSQL configuration, database performance tuning, work_mem calculator, effective_cache_size">
     <meta name="author" content="Gabriel Kanev">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://gkanev.com/mysql-calculator">
-    <meta property="og:title" content="MySQL/MariaDB Performance Settings Calculator">
+    <meta property="og:title" content="MySQL, MariaDB & PostgreSQL Performance Settings Calculator">
     <meta property="og:description"
-        content="Free tool to optimize MySQL/MariaDB for your specific server. Generate optimal my.cnf configurations instantly.">
+        content="Free tool to optimize MySQL, MariaDB, and PostgreSQL for your specific server. Generate optimal my.cnf and postgresql.conf configurations instantly.">
     <meta property="og:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://gkanev.com/mysql-calculator">
-    <meta name="twitter:title" content="MySQL/MariaDB Performance Settings Calculator">
+    <meta name="twitter:title" content="MySQL, MariaDB & PostgreSQL Performance Settings Calculator">
     <meta name="twitter:description"
-        content="Generate optimized MySQL/MariaDB configurations for your server in seconds. Free online configuration tool.">
+        content="Generate optimized MySQL, MariaDB, and PostgreSQL configurations for your server in seconds. Free online configuration tool.">
     <meta name="twitter:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png">
 
     <!-- Canonical URL -->
@@ -45,9 +45,9 @@
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "MySQL/MariaDB Settings Calculator",
+      "name": "MySQL, MariaDB & PostgreSQL Settings Calculator",
       "url": "https://gkanev.com/mysql-calculator",
-      "description": "Free online tool to calculate optimal MySQL and MariaDB settings based on your server memory.",
+      "description": "Free online tool to calculate optimal MySQL, MariaDB, and PostgreSQL settings based on your server memory. Generates my.cnf and postgresql.conf configurations.",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web",
       "offers": {
@@ -79,10 +79,24 @@
                 <main id="main-content">
                     <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
                         <header class="mb-6">
-                            <h1 class="text-3xl font-bold mb-2 text-center text-blue-600">
-                                MySQL/MariaDB Settings Calculator
-                            </h1>
-                            <p class="text-center text-zinc-600 mb-4">
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
+                                <h1 id="pageTitle" class="text-3xl font-bold text-blue-600">
+                                    MySQL/MariaDB Settings Calculator
+                                </h1>
+                                <div class="flex items-center bg-zinc-200 rounded-full p-1" role="radiogroup" aria-label="Database type selector">
+                                    <button type="button" id="dbToggleMySQL"
+                                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white"
+                                        role="radio" aria-checked="true">
+                                        MySQL
+                                    </button>
+                                    <button type="button" id="dbTogglePostgreSQL"
+                                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors text-zinc-600"
+                                        role="radio" aria-checked="false">
+                                        PostgreSQL
+                                    </button>
+                                </div>
+                            </div>
+                            <p id="pageDescription" class="text-center text-zinc-600 mb-4">
                                 Generate optimized database configurations based on your server specifications
                             </p>
                             <div class="flex justify-center gap-4 text-sm">
@@ -246,7 +260,7 @@
                                 <div id="exportMenu"
                                     class="hidden absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-zinc-200 z-10"
                                     role="menu">
-                                    <button type="button"
+                                    <button type="button" id="exportConfigBtn"
                                         class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
                                         data-format="my.cnf" role="menuitem">
                                         Download my.cnf
@@ -344,7 +358,7 @@
                     <!-- FAQ Section -->
                     <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
                         <h2 class="text-2xl font-bold mb-4 text-blue-600">Frequently Asked Questions</h2>
-                        <div class="space-y-4">
+                        <div id="faqContent" class="space-y-4">
                             <details class="border-b border-zinc-200 pb-4">
                                 <summary
                                     class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
@@ -424,6 +438,7 @@
                 <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
                     <h2 class="text-2xl font-bold mb-4 text-blue-600">Useful Links</h2>
 
+                    <div id="sidebarContent">
                     <section class="mb-4">
                         <h3 class="text-lg font-semibold mb-2">MySQL Tutorials</h3>
                         <ul class="list-disc pl-5 space-y-1">
@@ -459,6 +474,7 @@
                                     target="_blank" rel="noopener">MariaDB Documentation</a></li>
                         </ul>
                     </section>
+                    </div>
                 </div>
 
                 <footer class="bg-white rounded-xl shadow-lg p-8">
@@ -476,7 +492,7 @@
                         </div>
                     </div>
                     <div class="mt-2 text-xs text-zinc-400 text-center">
-                        <span id="appVersion">2.1.0</span>
+                        <span id="appVersion">3.0.0</span>
                     </div>
                 </footer>
             </aside>

@@ -12,7 +12,7 @@ import { configGenerator } from './config-generator.js';
  */
 class MySQLCalculatorApp {
   constructor() {
-    this.version = '2.0.0';
+    this.version = '3.0.0';
     this.isInitialized = false;
   }
 
@@ -148,7 +148,7 @@ class MySQLCalculatorApp {
           Application Failed to Load
         </h3>
         <p style="margin: 0 0 0.5rem 0;">
-          The MySQL/MariaDB Calculator failed to initialize. This might be due to:
+          The Database Settings Calculator failed to initialize. This might be due to:
         </p>
         <ul style="margin: 0; padding-left: 1.5rem;">
           <li>Browser compatibility issues</li>
@@ -173,6 +173,7 @@ class MySQLCalculatorApp {
     return {
       version: this.version,
       initialized: this.isInitialized,
+      currentDbType: uiManager.currentDbType || 'mysql',
       features: {
         templates: Object.keys(templateManager.getTemplates()).length,
         configFormats: Object.keys(configGenerator.configFormats).length

@@ -150,6 +150,89 @@ export function formatBytesMySQL(bytes) {
   return String(bytes);
 }
 
+/**
+ * Format bytes as PostgreSQL config-friendly value (e.g., 256MB, 12GB)
+ * PostgreSQL uses GB, MB, kB (lowercase k) units
+ */
+export function formatBytesPostgreSQL(bytes) {
+  if (bytes === 0) return '0';
+  if (bytes >= 1073741824 && bytes % 1073741824 === 0) {
+    return (bytes / 1073741824) + 'GB';
+  }
+  if (bytes >= 1048576 && bytes % 1048576 === 0) {
+    return (bytes / 1048576) + 'MB';
+  }
+  if (bytes >= 1024 && bytes % 1024 === 0) {
+    return (bytes / 1024) + 'kB';
+  }
+  return bytes + 'B';
+}
+
+// PostgreSQL-specific constants
+export const POSTGRESQL_CONSTANTS = {
+  // Memory allocation percentages
+  SHARED_BUFFERS_PERCENTAGE: 0.25,
+  EFFECTIVE_CACHE_SIZE_PERCENTAGE: 0.75,
+  WORK_MEM_BASE: 4 * 1024 * 1024, // 4MB base
+  MAINTENANCE_WORK_MEM_PERCENTAGE: 0.05,
+  WAL_BUFFERS_PERCENTAGE: 0.03,
+
+  // Connection settings
+  CONNECTIONS_PER_GB: 50,
+
+  // WAL settings
+  MAX_WAL_SIZE_DEFAULT: '1GB',
+  MIN_WAL_SIZE_DEFAULT: '80MB',
+  WAL_LEVEL_DEFAULT: 'replica',
+  CHECKPOINT_COMPLETION_TARGET: 0.9,
+
+  // Storage type costs
+  RANDOM_PAGE_COST: {
+    nvme: 1.1,
+    ssd: 1.1,
+    hdd: 4.0
+  },
+  EFFECTIVE_IO_CONCURRENCY: {
+    nvme: 200,
+    ssd: 200,
+    hdd: 2
+  },
+
+  // Worker processes
+  MAX_WORKER_PROCESSES: 8,
+  MAX_PARALLEL_WORKERS_PER_GATHER: 2,
+  MAX_PARALLEL_WORKERS: 4,
+  MAX_PARALLEL_MAINTENANCE_WORKERS: 2,
+
+  // Performance scoring
+  SCORE_WEIGHTS: {
+    memoryAllocation: 20,
+    sharedBuffers: 20,
+    walSettings: 20,
+    connections: 20,
+    queryPlanner: 20
+  },
+
+  // Connection caps by server size
+  MAX_CONNECTIONS_CAPS: {
+    VERY_LARGE: 1000,
+    LARGE: 500,
+    MEDIUM: 300,
+    SMALL: 200
+  },
+
+  // Server size thresholds (in GB)
+  SERVER_SIZE_THRESHOLDS: {
+    VERY_LARGE: 128,
+    LARGE: 64,
+    MEDIUM: 16,
+    SMALL: 4
+  },
+
+  // Calculation cache size
+  CALCULATION_CACHE_SIZE: 15
+};
+
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
