@@ -46,6 +46,15 @@ class DOMCache {
       this.elements.shareButton = document.getElementById('shareButton');
       this.elements.resetButton = document.getElementById('resetButton');
 
+      // Database type toggle elements
+      this.elements.dbToggleMySQL = document.getElementById('dbToggleMySQL');
+      this.elements.dbTogglePostgreSQL = document.getElementById('dbTogglePostgreSQL');
+      this.elements.pageTitle = document.getElementById('pageTitle');
+      this.elements.pageDescription = document.getElementById('pageDescription');
+      this.elements.faqContent = document.getElementById('faqContent');
+      this.elements.sidebarContent = document.getElementById('sidebarContent');
+      this.elements.exportConfigBtn = document.getElementById('exportConfigBtn');
+
       // Footer elements
       this.elements.currentYear = document.getElementById('currentYear');
       this.elements.appVersion = document.getElementById('appVersion');
