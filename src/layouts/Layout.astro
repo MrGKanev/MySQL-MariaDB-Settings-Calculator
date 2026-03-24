@@ -1,0 +1,75 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "MySQL/MariaDB & PostgreSQL Performance Calculator - Optimize Database Settings | Gabriel Kanev",
+  description = "Free online tool to optimize MySQL, MariaDB, and PostgreSQL settings based on your server's memory. Generate optimal my.cnf and postgresql.conf configurations with tailored recommendations for buffer sizes, connections, and performance parameters."
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content="MySQL optimizer, MariaDB performance, PostgreSQL tuning, database tuning, my.cnf generator, postgresql.conf generator, innodb buffer size calculator, shared_buffers calculator, max connections calculator, MySQL configuration, MariaDB settings, PostgreSQL configuration, database performance tuning, work_mem calculator, effective_cache_size" />
+    <meta name="author" content="Gabriel Kanev" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gkanev.com/mysql-calculator" />
+    <meta property="og:title" content="MySQL, MariaDB & PostgreSQL Performance Settings Calculator" />
+    <meta property="og:description" content="Free tool to optimize MySQL, MariaDB, and PostgreSQL for your specific server. Generate optimal my.cnf and postgresql.conf configurations instantly." />
+    <meta property="og:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://gkanev.com/mysql-calculator" />
+    <meta name="twitter:title" content="MySQL, MariaDB & PostgreSQL Performance Settings Calculator" />
+    <meta name="twitter:description" content="Generate optimized MySQL, MariaDB, and PostgreSQL configurations for your server in seconds. Free online configuration tool." />
+    <meta name="twitter:image" content="https://gkanev.com/mysql-calculator/assets/mysql-calculator-preview.png" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://gkanev.com/mysql-calculator" />
+
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="color-scheme" content="light" />
+
+    <!-- Structured Data / Schema.org -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "MySQL, MariaDB & PostgreSQL Settings Calculator",
+        "url": "https://gkanev.com/mysql-calculator",
+        "description": "Free online tool to calculate optimal MySQL, MariaDB, and PostgreSQL settings based on your server memory. Generates my.cnf and postgresql.conf configurations.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Gabriel Kanev",
+          "url": "https://gkanev.com"
+        }
+      }
+    </script>
+
+    <slot name="head" />
+  </head>
+  <body class="bg-zinc-100 min-h-dvh py-8">
+    <slot />
+  </body>
+</html>

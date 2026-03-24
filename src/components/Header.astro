@@ -1,0 +1,59 @@
+---
+---
+<header class="mb-6">
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
+    <h1 id="pageTitle" class="text-3xl font-bold text-blue-600">
+      MySQL/MariaDB Settings Calculator
+    </h1>
+    <div class="flex items-center bg-zinc-200 rounded-full p-1" role="radiogroup" aria-label="Database type selector">
+      <button
+        type="button"
+        id="dbToggleMySQL"
+        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white"
+        role="radio"
+        aria-checked="true"
+      >
+        MySQL
+      </button>
+      <button
+        type="button"
+        id="dbTogglePostgreSQL"
+        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors text-zinc-600"
+        role="radio"
+        aria-checked="false"
+      >
+        PostgreSQL
+      </button>
+    </div>
+  </div>
+  <p id="pageDescription" class="text-center text-zinc-600 mb-4">
+    Generate optimized database configurations based on your server specifications
+  </p>
+  <div class="flex justify-center gap-4 text-sm">
+    <button
+      type="button"
+      id="helpButton"
+      data-help
+      class="text-blue-500 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      aria-label="Open help and keyboard shortcuts"
+    >
+      Help (F1)
+    </button>
+    <button
+      type="button"
+      id="shareButton"
+      class="text-blue-500 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      aria-label="Share current configuration"
+    >
+      Share Config
+    </button>
+    <button
+      type="button"
+      id="resetButton"
+      class="text-blue-500 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      aria-label="Reset form to default values"
+    >
+      Reset
+    </button>
+  </div>
+</header>
