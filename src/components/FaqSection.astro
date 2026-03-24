@@ -1,70 +1,114 @@
 ---
+interface Props {
+  dbType: 'mysql' | 'postgresql';
+}
+const { dbType } = Astro.props;
+const summaryClass = "text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded";
+const detailsClass = "border-b border-zinc-200 pb-4";
 ---
 <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
   <h2 class="text-2xl font-bold mb-4 text-blue-600">Frequently Asked Questions</h2>
   <div id="faqContent" class="space-y-4">
-    <details class="border-b border-zinc-200 pb-4">
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        What is innodb_buffer_pool_size?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to
-        cache data and indexes of its tables. This is the most important MySQL configuration
-        setting for performance.
-      </p>
-    </details>
-
-    <details class="border-b border-zinc-200 pb-4">
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        How is max_connections calculated?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        In this calculator, max_connections is estimated based on available memory and workload type.
-        The actual optimal value depends on your specific workload, connection pooling, and server configuration.
-      </p>
-    </details>
-
-    <details class="border-b border-zinc-200 pb-4">
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        Why is some memory reserved for the OS?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        Reserving memory for the OS ensures that the system has enough resources to run smoothly,
-        preventing potential slowdowns or crashes due to memory exhaustion. A good rule of thumb is 10-20% of total RAM.
-      </p>
-    </details>
-
-    <details class="border-b border-zinc-200 pb-4">
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        Are these settings optimal for all scenarios?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        No, these are general recommendations. The optimal settings can vary greatly depending on
-        your specific use case, workload patterns, and hardware. Always monitor your system's
-        performance and adjust accordingly.
-      </p>
-    </details>
-
-    <details class="border-b border-zinc-200 pb-4">
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        Why do different storage types matter?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        SSDs and NVMe drives have much higher IOPS than traditional HDDs. Settings like
-        innodb_io_capacity, innodb_flush_neighbors, and innodb_flush_method should be optimized
-        differently based on your storage type.
-      </p>
-    </details>
-
-    <details>
-      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
-        How is innodb_flush_method chosen?
-      </summary>
-      <p class="mt-2 text-zinc-700">
-        The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
-        generally recommended as it bypasses the filesystem cache. For Windows, unbuffered is
-        typically best, while macOS often works best with fsync.
-      </p>
-    </details>
+    {dbType === 'postgresql' ? (
+      <>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>What is shared_buffers?</summary>
+          <p class="mt-2 text-zinc-700">
+            shared_buffers sets the amount of memory PostgreSQL uses for shared memory buffers.
+            The recommended starting point is 25% of total system memory. Unlike MySQL's buffer pool,
+            PostgreSQL relies heavily on the OS page cache, so setting this too high can actually hurt performance.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>What is effective_cache_size?</summary>
+          <p class="mt-2 text-zinc-700">
+            effective_cache_size provides an estimate to the query planner of how much memory is available
+            for disk caching. It includes both shared_buffers and OS file system cache. A good starting
+            value is 75% of total system memory. This setting does not allocate memory — it only informs the planner.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>How does work_mem affect queries?</summary>
+          <p class="mt-2 text-zinc-700">
+            work_mem sets the amount of memory used for sort operations and hash tables before writing
+            to temporary disk files. A single complex query can use multiple units of work_mem simultaneously.
+            Setting this too high with many connections can exhaust memory; too low causes frequent disk spills.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>Why use a connection pooler?</summary>
+          <p class="mt-2 text-zinc-700">
+            PostgreSQL creates a new process for each connection, using about 10MB of memory each.
+            Connection poolers like PgBouncer or pgpool-II multiplex many client connections over fewer
+            server connections, dramatically reducing memory usage and improving performance.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>What does random_page_cost control?</summary>
+          <p class="mt-2 text-zinc-700">
+            random_page_cost tells the query planner the estimated cost of a non-sequential disk page fetch.
+            For SSDs and NVMe drives, set this to 1.1 (close to sequential cost). For HDDs, the default of
+            4.0 is appropriate. Incorrect values can cause the planner to choose suboptimal query plans.
+          </p>
+        </details>
+        <details>
+          <summary class={summaryClass}>Are these settings optimal for all scenarios?</summary>
+          <p class="mt-2 text-zinc-700">
+            No, these are general recommendations based on PostgreSQL best practices. Optimal settings
+            depend on your specific workload, data size, and query patterns. Use pg_stat_statements,
+            EXPLAIN ANALYZE, and monitoring tools like pgBadger to fine-tune for your environment.
+          </p>
+        </details>
+      </>
+    ) : (
+      <>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>What is innodb_buffer_pool_size?</summary>
+          <p class="mt-2 text-zinc-700">
+            The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to
+            cache data and indexes of its tables. This is the most important MySQL configuration
+            setting for performance.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>How is max_connections calculated?</summary>
+          <p class="mt-2 text-zinc-700">
+            In this calculator, max_connections is estimated based on available memory and workload type.
+            The actual optimal value depends on your specific workload, connection pooling, and server configuration.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>Why is some memory reserved for the OS?</summary>
+          <p class="mt-2 text-zinc-700">
+            Reserving memory for the OS ensures that the system has enough resources to run smoothly,
+            preventing potential slowdowns or crashes due to memory exhaustion. A good rule of thumb is 10-20% of total RAM.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>Are these settings optimal for all scenarios?</summary>
+          <p class="mt-2 text-zinc-700">
+            No, these are general recommendations. The optimal settings can vary greatly depending on
+            your specific use case, workload patterns, and hardware. Always monitor your system's
+            performance and adjust accordingly.
+          </p>
+        </details>
+        <details class={detailsClass}>
+          <summary class={summaryClass}>Why do different storage types matter?</summary>
+          <p class="mt-2 text-zinc-700">
+            SSDs and NVMe drives have much higher IOPS than traditional HDDs. Settings like
+            innodb_io_capacity, innodb_flush_neighbors, and innodb_flush_method should be optimized
+            differently based on your storage type.
+          </p>
+        </details>
+        <details>
+          <summary class={summaryClass}>How is innodb_flush_method chosen?</summary>
+          <p class="mt-2 text-zinc-700">
+            The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
+            generally recommended as it bypasses the filesystem cache. For Windows, unbuffered is
+            typically best, while macOS often works best with fsync.
+          </p>
+        </details>
+      </>
+    )}
   </div>
 </div>

@@ -28,6 +28,9 @@ export class UIManager {
       // Initialize DOM cache first
       domCache.initialize();
 
+      // Read initial db type from body data attribute
+      this.currentDbType = document.body.dataset.dbType || 'mysql';
+
       // Setup event listeners
       this.setupEventListeners();
 
@@ -54,14 +57,6 @@ export class UIManager {
    * Setup event listeners for all interactive elements
    */
   setupEventListeners() {
-    // Database type toggle
-    domCache.addEventListener('dbToggleMySQL', 'click', () => {
-      this.switchDatabaseType('mysql');
-    });
-    domCache.addEventListener('dbTogglePostgreSQL', 'click', () => {
-      this.switchDatabaseType('postgresql');
-    });
-
     // Template selection
     domCache.addEventListener('workloadTemplate', 'change', (e) => {
       this.handleTemplateChange(e.target.value);
@@ -219,12 +214,6 @@ export class UIManager {
 
     // Update action button labels
     this.updateButtonLabels(isPostgres);
-
-    // Update FAQ content
-    this.updateFaqContent(isPostgres);
-
-    // Update sidebar links
-    this.updateSidebarContent(isPostgres);
 
     // Update export menu first item
     this.updateExportMenu(isPostgres);
