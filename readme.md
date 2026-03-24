@@ -2,19 +2,22 @@
 
 A web-based tool for generating optimized database configurations based on your server's hardware. Supports MySQL, MariaDB, and PostgreSQL. Built with [Astro 6](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com).
 
-**Live:** https://gkanev.com/mysql-calculator
+**Live:**
+- MySQL/MariaDB: https://database.gkanev.com/
+- PostgreSQL: https://database.gkanev.com/postgresql
 
 ---
 
 ## Features
 
-- **MySQL / MariaDB** and **PostgreSQL** support — toggle between them instantly
+- **MySQL / MariaDB** and **PostgreSQL** — two separate SEO-indexed pages
 - Memory-based calculations with OS and application memory reservation
 - Workload templates: OLTP, OLAP, Mixed, Web Application, Small VPS
 - Performance score with per-category breakdown and recommendations
 - Export to `my.cnf`, `postgresql.conf`, `pg_hba.conf`, Docker Compose, JSON
-- Shareable URLs — configuration is encoded in query parameters
-- Responsive, accessible design (keyboard navigation, screen reader support)
+- Shareable URLs — configuration encoded in query parameters
+- Responsive design optimized for mobile and desktop
+- Accessible: keyboard navigation, screen reader support, WCAG AA contrast
 
 ## Getting Started
 
@@ -27,42 +30,11 @@ Open http://localhost:4321 in your browser.
 
 ## Commands
 
-| Command           | Description                              |
-|-------------------|------------------------------------------|
-| `npm run dev`     | Start dev server with hot reload         |
-| `npm run build`   | Build for production (output: `dist/`)   |
-| `npm run preview` | Preview the production build locally     |
-
-## Project Structure
-
-```
-src/
-├── layouts/
-│   └── Layout.astro          # HTML shell, meta tags, structured data
-├── pages/
-│   └── index.astro           # Main page
-├── components/
-│   ├── Header.astro          # Title + MySQL/PostgreSQL toggle
-│   ├── ConfigForm.astro      # Input form
-│   ├── ExportMenu.astro      # Export buttons and dropdown
-│   ├── ConfigOutput.astro    # Generated config code block
-│   ├── PerformanceScore.astro # Score visualization
-│   ├── FaqSection.astro      # FAQ
-│   ├── Sidebar.astro         # Links + footer
-│   └── LoadingIndicator.astro
-├── scripts/                  # Client-side JavaScript modules
-│   ├── calculations.js       # MySQL/MariaDB calculator
-│   ├── pg-calculations.js    # PostgreSQL calculator
-│   ├── config-generator.js   # Config file generators
-│   ├── templates.js          # MySQL workload templates
-│   ├── pg-templates.js       # PostgreSQL workload templates
-│   ├── ui.js                 # UI manager
-│   ├── dom-cache.js          # DOM element cache
-│   ├── utils.js              # Shared utilities
-│   └── main.js               # App entry point
-└── styles/
-    └── global.css            # Tailwind CSS v4 import
-```
+| Command           | Description                          |
+|-------------------|--------------------------------------|
+| `npm run dev`     | Start dev server with hot reload     |
+| `npm run build`   | Build for production → `dist/`       |
+| `npm run preview` | Preview the production build locally |
 
 ## Calculation Methods
 

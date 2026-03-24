@@ -43,10 +43,11 @@ const ogImage = "https://gkanev.com/mysql-calculator/assets/mysql-calculator-pre
     <meta name="twitter:image" content={ogImage} />
 
     <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" content="#2563eb" />
     <meta name="color-scheme" content="light" />
 
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -63,7 +64,7 @@ const ogImage = "https://gkanev.com/mysql-calculator/assets/mysql-calculator-pre
 
     <slot name="head" />
   </head>
-  <body class="bg-zinc-100 min-h-dvh py-8" data-db-type={dbType}>
+  <body class="bg-zinc-100 min-h-dvh py-4 sm:py-8" data-db-type={dbType}>
     <slot />
   </body>
 </html>

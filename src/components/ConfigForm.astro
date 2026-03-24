@@ -1,14 +1,15 @@
 ---
 ---
-<form role="form" aria-label="MySQL Configuration Settings">
+<form role="form" aria-label="Database Configuration Settings" class="mt-4">
+
   <!-- Workload Template -->
-  <div class="mt-6 mb-4">
-    <label for="workloadTemplate" class="block text-sm font-medium text-zinc-700 mb-1">
+  <div class="mb-5">
+    <label for="workloadTemplate" class="block text-sm font-semibold text-zinc-700 mb-1.5">
       Workload Template
     </label>
     <select
       id="workloadTemplate"
-      class="block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+      class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
       aria-describedby="workloadTemplate-help"
     >
       <option value="custom">Custom Configuration</option>
@@ -18,23 +19,24 @@
       <option value="webserver">Web Server</option>
       <option value="smallserver">Small VPS Server</option>
     </select>
-    <p id="workloadTemplate-help" class="mt-1 text-sm text-zinc-600">
+    <p id="workloadTemplate-help" class="mt-1 text-xs text-zinc-500">
       Select a predefined template or customize your own settings.
     </p>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+
     <!-- Total Server Memory -->
-    <div>
-      <label for="totalMemory" class="block text-sm font-medium text-zinc-700 mb-1">
-        Total Server Memory (GB)
-        <span class="text-red-500" aria-label="Required">*</span>
+    <div class="flex flex-col gap-1.5">
+      <label for="totalMemory" class="text-sm font-semibold text-zinc-700">
+        Total Memory (GB)
+        <span class="text-red-500 ml-0.5" aria-label="Required">*</span>
       </label>
       <input
         type="range"
         id="totalMemorySlider"
         min="1" max="512" step="0.5" value="16"
-        class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        class="w-full accent-blue-600 cursor-pointer"
         aria-label="Total Server Memory slider"
         aria-describedby="totalMemory-help"
       />
@@ -42,26 +44,24 @@
         type="number"
         id="totalMemory"
         value="16" min="0.5" max="512" step="0.1"
-        class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        placeholder="Enter total memory in GB"
+        class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        placeholder="e.g. 16"
         aria-describedby="totalMemory-help"
         required
       />
-      <p id="totalMemory-help" class="mt-1 text-sm text-zinc-600">
-        Total RAM available on your server (supports up to 512GB)
-      </p>
+      <p id="totalMemory-help" class="text-xs text-zinc-500">Total RAM on your server (up to 512 GB)</p>
     </div>
 
     <!-- Reserved Memory for OS -->
-    <div>
-      <label for="reservedMemory" class="block text-sm font-medium text-zinc-700 mb-1">
-        Reserved Memory for OS (GB)
+    <div class="flex flex-col gap-1.5">
+      <label for="reservedMemory" class="text-sm font-semibold text-zinc-700">
+        Reserved for OS (GB)
       </label>
       <input
         type="range"
         id="reservedMemorySlider"
         min="0" max="256" step="0.1" value="0"
-        class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        class="w-full accent-blue-600 cursor-pointer"
         aria-label="Reserved Memory slider"
         aria-describedby="reservedMemory-help"
       />
@@ -69,25 +69,23 @@
         type="number"
         id="reservedMemory"
         value="0" min="0" max="256" step="0.1"
-        class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        placeholder="Enter reserved memory"
+        class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        placeholder="e.g. 2"
         aria-describedby="reservedMemory-help"
       />
-      <p id="reservedMemory-help" class="mt-1 text-sm text-zinc-600">
-        Memory to reserve for the operating system and essential services
-      </p>
+      <p id="reservedMemory-help" class="text-xs text-zinc-500">Memory reserved for the OS and essential services</p>
     </div>
 
     <!-- Memory for Other Tasks -->
-    <div>
-      <label for="otherTasksMemory" class="block text-sm font-medium text-zinc-700 mb-1">
-        Memory for Other Tasks (GB)
+    <div class="flex flex-col gap-1.5">
+      <label for="otherTasksMemory" class="text-sm font-semibold text-zinc-700">
+        Other Tasks (GB)
       </label>
       <input
         type="range"
         id="otherTasksMemorySlider"
         min="0" max="256" step="0.5" value="0"
-        class="w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        class="w-full accent-blue-600 cursor-pointer"
         aria-label="Other Tasks Memory slider"
         aria-describedby="otherTasksMemory-help"
       />
@@ -95,51 +93,43 @@
         type="number"
         id="otherTasksMemory"
         value="0" min="0" max="256" step="0.1"
-        class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        placeholder="Enter memory for other tasks"
+        class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        placeholder="e.g. 1"
         aria-describedby="otherTasksMemory-help"
       />
-      <p id="otherTasksMemory-help" class="mt-1 text-sm text-zinc-600">
-        Memory allocated for web servers, applications, or other services (up to 256GB)
-      </p>
+      <p id="otherTasksMemory-help" class="text-xs text-zinc-500">For web servers, apps, or other services</p>
     </div>
 
-    <!-- Operating System -->
-    <div>
-      <label for="osType" class="block text-sm font-medium text-zinc-700 mb-1">
-        Operating System
-      </label>
-      <select
-        id="osType"
-        class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        aria-describedby="osType-help"
-      >
-        <option value="linux">Linux</option>
-        <option value="windows">Windows</option>
-        <option value="macos">macOS</option>
-      </select>
-      <p id="osType-help" class="mt-1 text-sm text-zinc-600">
-        Affects optimal InnoDB flush method settings
-      </p>
+    <!-- OS + Storage in a nested 2-col on larger, stacked on small -->
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label for="osType" class="text-sm font-semibold text-zinc-700">Operating System</label>
+        <select
+          id="osType"
+          class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          aria-describedby="osType-help"
+        >
+          <option value="linux">Linux</option>
+          <option value="windows">Windows</option>
+          <option value="macos">macOS</option>
+        </select>
+        <p id="osType-help" class="text-xs text-zinc-500">Affects InnoDB flush method</p>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="storageType" class="text-sm font-semibold text-zinc-700">Storage Type</label>
+        <select
+          id="storageType"
+          class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          aria-describedby="storageType-help"
+        >
+          <option value="ssd">SSD (Default)</option>
+          <option value="nvme">NVMe</option>
+          <option value="hdd">HDD (Traditional)</option>
+        </select>
+        <p id="storageType-help" class="text-xs text-zinc-500">Affects I/O capacity and optimizations</p>
+      </div>
     </div>
 
-    <!-- Storage Type -->
-    <div>
-      <label for="storageType" class="block text-sm font-medium text-zinc-700 mb-1">
-        Storage Type
-      </label>
-      <select
-        id="storageType"
-        class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        aria-describedby="storageType-help"
-      >
-        <option value="ssd">SSD (Default)</option>
-        <option value="nvme">NVMe</option>
-        <option value="hdd">HDD (Traditional)</option>
-      </select>
-      <p id="storageType-help" class="mt-1 text-sm text-zinc-600">
-        Affects InnoDB I/O optimizations and flush neighbors setting
-      </p>
-    </div>
   </div>
 </form>

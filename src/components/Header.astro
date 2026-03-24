@@ -6,38 +6,46 @@ const { dbType } = Astro.props;
 const isMysql = dbType === 'mysql';
 ---
 <header class="mb-6">
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
-    <h1 id="pageTitle" class="text-3xl font-bold text-blue-600">
+  <!-- DB toggle + title row -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+    <h1 class="text-2xl sm:text-3xl font-bold text-blue-600 leading-tight">
       {isMysql ? 'MySQL/MariaDB Settings Calculator' : 'PostgreSQL Settings Calculator'}
     </h1>
-    <nav class="flex items-center bg-zinc-200 rounded-full p-1" role="navigation" aria-label="Database type selector">
+    <nav
+      class="flex items-center self-start sm:self-auto bg-zinc-100 border border-zinc-200 rounded-full p-1 shrink-0"
+      role="navigation"
+      aria-label="Database type selector"
+    >
       <a
         href="/"
-        class={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${isMysql ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-900'}`}
+        class={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${isMysql ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200'}`}
         aria-current={isMysql ? 'page' : undefined}
       >
         MySQL
       </a>
       <a
         href="/postgresql"
-        class={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${!isMysql ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-900'}`}
+        class={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${!isMysql ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200'}`}
         aria-current={!isMysql ? 'page' : undefined}
       >
         PostgreSQL
       </a>
     </nav>
   </div>
-  <p id="pageDescription" class="text-center text-zinc-600 mb-4">
+
+  <p class="text-sm sm:text-base text-zinc-500 mb-4">
     {isMysql
       ? 'Generate optimized MySQL/MariaDB configurations based on your server specifications'
       : 'Generate optimized PostgreSQL configurations based on your server specifications'}
   </p>
-  <div class="flex justify-center gap-4 text-sm">
+
+  <!-- Action links -->
+  <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm border-t border-zinc-100 pt-3">
     <button
       type="button"
       id="helpButton"
       data-help
-      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded py-1"
       aria-label="Open help and keyboard shortcuts"
     >
       Help (F1)
@@ -45,15 +53,15 @@ const isMysql = dbType === 'mysql';
     <button
       type="button"
       id="shareButton"
-      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded py-1"
       aria-label="Share current configuration"
     >
-      Share Config
+      Share
     </button>
     <button
       type="button"
       id="resetButton"
-      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-1"
+      class="text-blue-600 underline hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded py-1"
       aria-label="Reset form to default values"
     >
       Reset
