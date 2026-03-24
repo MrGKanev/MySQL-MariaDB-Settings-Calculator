@@ -1,0 +1,70 @@
+---
+---
+<div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+  <h2 class="text-2xl font-bold mb-4 text-blue-600">Frequently Asked Questions</h2>
+  <div id="faqContent" class="space-y-4">
+    <details class="border-b border-zinc-200 pb-4">
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        What is innodb_buffer_pool_size?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        The innodb_buffer_pool_size is the size in bytes of the memory buffer InnoDB uses to
+        cache data and indexes of its tables. This is the most important MySQL configuration
+        setting for performance.
+      </p>
+    </details>
+
+    <details class="border-b border-zinc-200 pb-4">
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        How is max_connections calculated?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        In this calculator, max_connections is estimated based on available memory and workload type.
+        The actual optimal value depends on your specific workload, connection pooling, and server configuration.
+      </p>
+    </details>
+
+    <details class="border-b border-zinc-200 pb-4">
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        Why is some memory reserved for the OS?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        Reserving memory for the OS ensures that the system has enough resources to run smoothly,
+        preventing potential slowdowns or crashes due to memory exhaustion. A good rule of thumb is 10-20% of total RAM.
+      </p>
+    </details>
+
+    <details class="border-b border-zinc-200 pb-4">
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        Are these settings optimal for all scenarios?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        No, these are general recommendations. The optimal settings can vary greatly depending on
+        your specific use case, workload patterns, and hardware. Always monitor your system's
+        performance and adjust accordingly.
+      </p>
+    </details>
+
+    <details class="border-b border-zinc-200 pb-4">
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        Why do different storage types matter?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        SSDs and NVMe drives have much higher IOPS than traditional HDDs. Settings like
+        innodb_io_capacity, innodb_flush_neighbors, and innodb_flush_method should be optimized
+        differently based on your storage type.
+      </p>
+    </details>
+
+    <details>
+      <summary class="text-lg font-semibold cursor-pointer hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">
+        How is innodb_flush_method chosen?
+      </summary>
+      <p class="mt-2 text-zinc-700">
+        The optimal innodb_flush_method varies by operating system. For Linux, O_DIRECT is
+        generally recommended as it bypasses the filesystem cache. For Windows, unbuffered is
+        typically best, while macOS often works best with fsync.
+      </p>
+    </details>
+  </div>
+</div>

@@ -515,6 +515,11 @@ export class UIManager {
       exportConfigBtn.textContent = isPostgres ? 'Download postgresql.conf' : 'Download my.cnf';
       exportConfigBtn.dataset.format = isPostgres ? 'postgresql.conf' : 'my.cnf';
     }
+
+    const pgHbaBtn = document.getElementById('exportPgHbaBtn');
+    if (pgHbaBtn) {
+      pgHbaBtn.classList.toggle('hidden', !isPostgres);
+    }
   }
 
   /**

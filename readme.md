@@ -1,172 +1,101 @@
-# MySQL/MariaDB Settings Calculator
+# MySQL, MariaDB & PostgreSQL Settings Calculator
 
-## Description
+A web-based tool for generating optimized database configurations based on your server's hardware. Supports MySQL, MariaDB, and PostgreSQL. Built with [Astro 6](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com).
 
-The MySQL/MariaDB Settings Calculator is a web-based tool designed to help database administrators and developers optimize their MySQL or MariaDB database settings based on their server's available memory. This calculator provides recommendations for key configuration parameters, ensuring better performance and resource utilization.
+**Live:** https://gkanev.com/mysql-calculator
+
+---
 
 ## Features
 
-- Interactive memory allocation input using sliders and text fields
-- Real-time calculation of recommended MySQL/MariaDB settings
-- Comprehensive set of recommendations, including:
-  - InnoDB buffer pool size
-  - Max connections
-  - Key buffer size
-  - Query cache size
-  - Tmp table size
-  - InnoDB log file size and buffer size
-  - Various InnoDB-specific settings
-  - Sort, read, and join buffer sizes
-- Links to official MySQL documentation for each setting
-- Responsive design for both desktop and mobile devices
-- FAQ section addressing common questions about database settings
-- Useful links to MySQL and MariaDB tutorials and documentation
+- **MySQL / MariaDB** and **PostgreSQL** support — toggle between them instantly
+- Memory-based calculations with OS and application memory reservation
+- Workload templates: OLTP, OLAP, Mixed, Web Application, Small VPS
+- Performance score with per-category breakdown and recommendations
+- Export to `my.cnf`, `postgresql.conf`, `pg_hba.conf`, Docker Compose, JSON
+- Shareable URLs — configuration is encoded in query parameters
+- Responsive, accessible design (keyboard navigation, screen reader support)
 
-## Usage
+## Getting Started
 
-1. Open the calculator in your web browser.
-2. Use the sliders or input fields to specify:
-   - Total Server Memory (GB)
-   - Reserved Memory for OS (GB)
-   - Memory for Other Tasks (GB)
-3. The recommended settings will update automatically as you adjust the inputs.
-4. Review the recommended settings in the results table.
-5. Click on any setting name to view its official MySQL documentation for more information.
-6. Consult the FAQ section for answers to common questions about database settings.
-7. Use the provided links to access additional MySQL and MariaDB resources.
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:4321 in your browser.
+
+## Commands
+
+| Command           | Description                              |
+|-------------------|------------------------------------------|
+| `npm run dev`     | Start dev server with hot reload         |
+| `npm run build`   | Build for production (output: `dist/`)   |
+| `npm run preview` | Preview the production build locally     |
+
+## Project Structure
+
+```
+src/
+├── layouts/
+│   └── Layout.astro          # HTML shell, meta tags, structured data
+├── pages/
+│   └── index.astro           # Main page
+├── components/
+│   ├── Header.astro          # Title + MySQL/PostgreSQL toggle
+│   ├── ConfigForm.astro      # Input form
+│   ├── ExportMenu.astro      # Export buttons and dropdown
+│   ├── ConfigOutput.astro    # Generated config code block
+│   ├── PerformanceScore.astro # Score visualization
+│   ├── FaqSection.astro      # FAQ
+│   ├── Sidebar.astro         # Links + footer
+│   └── LoadingIndicator.astro
+├── scripts/                  # Client-side JavaScript modules
+│   ├── calculations.js       # MySQL/MariaDB calculator
+│   ├── pg-calculations.js    # PostgreSQL calculator
+│   ├── config-generator.js   # Config file generators
+│   ├── templates.js          # MySQL workload templates
+│   ├── pg-templates.js       # PostgreSQL workload templates
+│   ├── ui.js                 # UI manager
+│   ├── dom-cache.js          # DOM element cache
+│   ├── utils.js              # Shared utilities
+│   └── main.js               # App entry point
+└── styles/
+    └── global.css            # Tailwind CSS v4 import
+```
 
 ## Calculation Methods
 
-The calculator uses the following methods to determine the recommended settings:
+### MySQL / MariaDB
 
-1. Available Memory:
+| Setting | Formula |
+|---------|---------|
+| `innodb_buffer_pool_size` | 70% of available memory |
+| `max_connections` | ~100 per GB (capped by workload) |
+| `innodb_log_file_size` | 25% of buffer pool |
+| `innodb_io_capacity` | 100–2000 based on storage type |
+| `innodb_flush_method` | OS-dependent (O_DIRECT on Linux) |
 
-   ```
-   Available Memory = Total Server Memory - Reserved Memory for OS - Memory for Other Tasks
-   ```
+### PostgreSQL
 
-2. innodb_buffer_pool_size: 70% of available memory
+| Setting | Formula |
+|---------|---------|
+| `shared_buffers` | 25% of available memory |
+| `effective_cache_size` | 75% of total memory |
+| `work_mem` | (RAM − shared_buffers) / (max_connections × 3) |
+| `maintenance_work_mem` | 5% of available memory (max 2GB) |
+| `wal_buffers` | 3% of shared_buffers (min 14MB) |
+| `random_page_cost` | 1.1 (NVMe), 1.5 (SSD), 4.0 (HDD) |
 
-   ```
-   innodb_buffer_pool_size = Available Memory * 0.7
-   ```
-
-3. max_connections: 100 connections per GB of available memory
-
-   ```
-   max_connections = Available Memory (in GB) * 100
-   ```
-
-4. key_buffer_size: 10% of available memory
-
-   ```
-   key_buffer_size = Available Memory * 0.1
-   ```
-
-5. innodb_log_file_size: 25% of innodb_buffer_pool_size
-  ```
-  innodb_log_file_size = innodb_buffer_pool_size * 0.25
-  ```
-
-6. query_cache_size: 5% of available memory
-
-   ```
-   query_cache_size = Available Memory * 0.05
-   ```
-
-7. tmp_table_size: 5% of available memory
-
-   ```
-   tmp_table_size = Available Memory * 0.05
-   ```
-
-8. innodb_log_buffer_size: 1% of available memory, capped at 8MB
-
-   ```
-   innodb_log_buffer_size = min(Available Memory * 0.01, 8MB)
-   ```
-
-9. innodb_flush_log_at_trx_commit: Set to 1 for ACID compliance
-
-10. innodb_flush_method: Set to 'O_DIRECT' for most cases
-
-11. innodb_file_per_table: Set to 1 to enable
-
-12. innodb_io_capacity: 100 IOPS per GB of available memory
-
-    ```
-    innodb_io_capacity = Available Memory (in GB) * 100
-    ```
-
-13. innodb_read_io_threads and innodb_write_io_threads: Set to 4 each
-
-14. innodb_thread_concurrency: Set to 0 (auto-configure)
-
-15. sort_buffer_size: 2% of available memory, capped at 262144 bytes
-
-    ```
-    sort_buffer_size = min(Available Memory * 0.02, 262144)
-    ```
-
-16. read_buffer_size: 1% of available memory, capped at 262144 bytes
-
-    ```
-    read_buffer_size = min(Available Memory * 0.01, 262144)
-    ```
-
-17. read_rnd_buffer_size: 1% of available memory, capped at 524288 bytes
-
-    ```
-    read_rnd_buffer_size = min(Available Memory * 0.01, 524288)
-    ```
-
-18. join_buffer_size: 1% of available memory, capped at 262144 bytes
-
-    ```
-    join_buffer_size = min(Available Memory * 0.01, 262144)
-    ```
-
-Please note that these calculations are based on general best practices and may need to be adjusted for specific use cases. Always monitor your database performance and adjust settings accordingly.
+All values are starting points. Monitor your database and adjust based on actual workload.
 
 ## Contributing
 
-Contributions to the MySQL/MariaDB Settings Calculator are welcome! Here's how you can contribute:
-
 1. Fork the repository
-2. Create a new branch (`git checkout -b feature/YourFeature`)
-3. Make your changes
-4. Commit your changes (`git commit -m 'Add some feature'`)
-5. Push to the branch (`git push origin feature/YourFeature`)
-6. Open a Pull Request
-
-Please ensure your code adheres to the existing style and that you've tested your changes thoroughly.
-
-## Useful Commands
-
-- Continuously watch for changes in the `style.css` file, updating the output file whenever changes occur.
-
-```bash
-npx @tailwindcss/cli -i ./assets/css/styles.css -o ./assets/css/styles.min.css --watch
-```
-
-- Generate a minified version of the CSS
-
-```bash
-npx @tailwindcss/cli -i ./assets/css/styles.css -o ./assets/css/styles_min.css --minify
-```
+2. Create a branch: `git checkout -b feature/your-feature`
+3. Commit your changes
+4. Push and open a Pull Request
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
-
-## Author
-
-Created by [Gabriel Kanev](https://gkanev.com)
-
-## Acknowledgments
-
-- MySQL Documentation
-- MariaDB Documentation
-- All contributors who have helped improve this calculator
-
-For any questions, issues, or suggestions, please open an issue on the GitHub repository.
+[MIT](LICENSE) — Created by [Gabriel Kanev](https://gkanev.com)

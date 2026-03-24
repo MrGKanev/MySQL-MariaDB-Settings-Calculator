@@ -1,0 +1,89 @@
+---
+---
+<div class="mt-6 flex flex-wrap gap-3">
+  <button
+    id="generateConfigBtn"
+    type="button"
+    class="bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+    aria-describedby="generateConfig-help"
+  >
+    Generate my.cnf File
+  </button>
+  <p id="generateConfig-help" class="sr-only">Generate MySQL configuration file based on current settings</p>
+
+  <div class="relative" id="exportDropdown">
+    <button
+      id="exportOptionsBtn"
+      type="button"
+      class="bg-purple-600 hover:bg-purple-700 focus:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2 hidden"
+      aria-expanded="false"
+      aria-haspopup="true"
+    >
+      Export Options ▼
+    </button>
+    <div
+      id="exportMenu"
+      class="hidden absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-zinc-200 z-10"
+      role="menu"
+    >
+      <button
+        type="button"
+        id="exportConfigBtn"
+        class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+        data-format="my.cnf"
+        role="menuitem"
+      >
+        Download my.cnf
+      </button>
+      <button
+        type="button"
+        class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+        data-format="json"
+        role="menuitem"
+      >
+        Download JSON
+      </button>
+      <button
+        type="button"
+        id="exportPgHbaBtn"
+        class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none hidden"
+        data-format="pg_hba.conf"
+        role="menuitem"
+      >
+        Download pg_hba.conf
+      </button>
+      <button
+        type="button"
+        class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+        data-format="docker-compose"
+        role="menuitem"
+      >
+        Download Docker Compose
+      </button>
+      <button
+        type="button"
+        class="export-option w-full text-left px-4 py-2 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none border-t"
+        data-action="copy"
+        role="menuitem"
+      >
+        Copy to Clipboard
+      </button>
+    </div>
+  </div>
+
+  <button
+    id="copyConfigBtn"
+    type="button"
+    class="bg-green-600 hover:bg-green-700 focus:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 focus:ring-offset-2 hidden"
+  >
+    Copy to Clipboard
+  </button>
+
+  <button
+    id="downloadConfigBtn"
+    type="button"
+    class="bg-purple-600 hover:bg-purple-700 focus:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2 hidden"
+  >
+    Download my.cnf
+  </button>
+</div>

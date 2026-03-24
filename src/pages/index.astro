@@ -1,0 +1,70 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import ConfigForm from '../components/ConfigForm.astro';
+import ExportMenu from '../components/ExportMenu.astro';
+import ConfigOutput from '../components/ConfigOutput.astro';
+import PerformanceScore from '../components/PerformanceScore.astro';
+import FaqSection from '../components/FaqSection.astro';
+import Sidebar from '../components/Sidebar.astro';
+import LoadingIndicator from '../components/LoadingIndicator.astro';
+import '../styles/global.css';
+---
+
+<Layout>
+  <!-- Skip to main content -->
+  <a
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 bg-blue-600 text-white p-2 rounded"
+  >
+    Skip to main content
+  </a>
+
+  <div class="container mx-auto px-4">
+    <div class="flex flex-wrap -mx-3">
+
+      <!-- Main content -->
+      <div class="w-full md:w-2/3 px-3">
+        <main id="main-content">
+
+          <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <Header />
+            <ConfigForm />
+
+            <!-- Error display -->
+            <div
+              id="error"
+              class="text-red-500 mb-4 hidden p-3 bg-red-50 rounded-md border border-red-200"
+              role="alert"
+              aria-live="polite"
+            ></div>
+
+            <!-- Results -->
+            <section aria-label="Calculation Results">
+              <div id="results" class="mt-6 bg-zinc-50 p-4 rounded-md" aria-live="polite">
+                <p class="text-zinc-500">Enter your server specifications above to see recommendations.</p>
+              </div>
+            </section>
+
+            <ExportMenu />
+            <ConfigOutput />
+          </div>
+
+          <PerformanceScore />
+          <FaqSection />
+
+        </main>
+      </div>
+
+      <!-- Sidebar -->
+      <Sidebar />
+
+    </div>
+  </div>
+
+  <LoadingIndicator />
+
+  <script>
+    import '../scripts/main.js';
+  </script>
+</Layout>
