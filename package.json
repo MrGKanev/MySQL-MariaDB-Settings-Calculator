@@ -7,6 +7,6 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.2.2",
-    "tailwindcss": "^4.2.4"
+    "tailwindcss": "^4.3.0"
   }
 }
