@@ -133,40 +133,16 @@ export function formatBytes(bytes) {
   return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
 }
 
-/**
- * Format bytes as MySQL config-friendly value (e.g., 256M, 12G)
- */
-export function formatBytesMySQL(bytes) {
+function formatBytesDB(bytes, units) {
   if (bytes === 0) return '0';
-  if (bytes >= 1073741824 && bytes % 1073741824 === 0) {
-    return (bytes / 1073741824) + 'G';
-  }
-  if (bytes >= 1048576 && bytes % 1048576 === 0) {
-    return (bytes / 1048576) + 'M';
-  }
-  if (bytes >= 1024 && bytes % 1024 === 0) {
-    return (bytes / 1024) + 'K';
-  }
-  return String(bytes);
+  if (bytes >= 1073741824 && bytes % 1073741824 === 0) return (bytes / 1073741824) + units[0];
+  if (bytes >= 1048576 && bytes % 1048576 === 0) return (bytes / 1048576) + units[1];
+  if (bytes >= 1024 && bytes % 1024 === 0) return (bytes / 1024) + units[2];
+  return bytes + (units[3] ?? '');
 }
 
-/**
- * Format bytes as PostgreSQL config-friendly value (e.g., 256MB, 12GB)
- * PostgreSQL uses GB, MB, kB (lowercase k) units
- */
-export function formatBytesPostgreSQL(bytes) {
-  if (bytes === 0) return '0';
-  if (bytes >= 1073741824 && bytes % 1073741824 === 0) {
-    return (bytes / 1073741824) + 'GB';
-  }
-  if (bytes >= 1048576 && bytes % 1048576 === 0) {
-    return (bytes / 1048576) + 'MB';
-  }
-  if (bytes >= 1024 && bytes % 1024 === 0) {
-    return (bytes / 1024) + 'kB';
-  }
-  return bytes + 'B';
-}
+export const formatBytesMySQL = (bytes) => formatBytesDB(bytes, ['G', 'M', 'K', '']);
+export const formatBytesPostgreSQL = (bytes) => formatBytesDB(bytes, ['GB', 'MB', 'kB', 'B']);
 
 // PostgreSQL-specific constants
 export const POSTGRESQL_CONSTANTS = {
@@ -338,36 +314,12 @@ export function calculateBufferPoolInstances(bufferPoolSize, totalMemoryGB) {
 }
 
 export function calculateIOThreads(totalMemoryGB) {
-  // Scale I/O threads based on server size
-  // Large servers benefit from more I/O threads to handle parallel operations
-  let readThreads, writeThreads;
-
-  if (totalMemoryGB >= 128) {
-    // Very large servers: 16 threads for maximum parallelism
-    readThreads = 16;
-    writeThreads = 16;
-  } else if (totalMemoryGB >= 64) {
-    // Large servers: 12 threads
-    readThreads = 12;
-    writeThreads = 12;
-  } else if (totalMemoryGB >= 32) {
-    // Medium-large servers: 8 threads
-    readThreads = 8;
-    writeThreads = 8;
-  } else if (totalMemoryGB >= 16) {
-    // Medium servers: 8 threads
-    readThreads = 8;
-    writeThreads = 8;
-  } else {
-    // Smaller servers: 4 threads
-    readThreads = 4;
-    writeThreads = 4;
-  }
-
-  return {
-    read: readThreads,
-    write: writeThreads
-  };
+  let threads;
+  if (totalMemoryGB >= 128) threads = 16;
+  else if (totalMemoryGB >= 64) threads = 12;
+  else if (totalMemoryGB >= 16) threads = 8;
+  else threads = 4;
+  return { read: threads, write: threads };
 }
 
 export function calculateTableSettings(totalMemoryGB, maxConnections) {

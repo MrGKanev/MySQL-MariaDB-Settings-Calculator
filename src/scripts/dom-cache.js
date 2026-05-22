@@ -10,6 +10,7 @@ class DOMCache {
 
     try {
       // Input elements
+      this.elements.dbSoftware = document.getElementById('dbSoftware');
       this.elements.workloadTemplate = document.getElementById('workloadTemplate');
       this.elements.totalMemory = document.getElementById('totalMemory');
       this.elements.totalMemorySlider = document.getElementById('totalMemorySlider');
@@ -78,21 +79,14 @@ class DOMCache {
   }
 
   enhanceAccessibility() {
-    // Add ARIA descriptions for better screen reader support
     this.addAriaDescriptions();
-    
-    // Improve focus indicators
-    this.enhanceFocusIndicators();
-    
-    // Make sliders more accessible
     this.enhanceSliderAccessibility();
-    
-    // Improve mobile experience
     this.enhanceMobileExperience();
   }
 
   addAriaDescriptions() {
     const descriptions = {
+      dbSoftware: 'Select the database software and version to generate the correct configuration',
       totalMemory: 'Enter the total amount of server memory in gigabytes',
       reservedMemory: 'Amount of memory to reserve for the operating system',
       otherTasksMemory: 'Memory allocated for other applications and services',
@@ -103,50 +97,16 @@ class DOMCache {
 
     Object.entries(descriptions).forEach(([elementId, description]) => {
       const element = this.elements[elementId];
-      if (element) {
-        element.setAttribute('aria-description', description);
+      if (!element) return;
+      const descId = `${elementId}-desc`;
+      if (!document.getElementById(descId)) {
+        const span = document.createElement('span');
+        span.id = descId;
+        span.className = 'sr-only';
+        span.textContent = description;
+        element.insertAdjacentElement('afterend', span);
       }
-    });
-
-    // Add aria-describedby for form relationships
-    if (this.elements.totalMemory && this.elements.totalMemorySlider) {
-      this.elements.totalMemory.setAttribute('aria-describedby', 'totalMemorySlider');
-      this.elements.totalMemorySlider.setAttribute('aria-describedby', 'totalMemory');
-    }
-  }
-
-  enhanceFocusIndicators() {
-    // Add better focus styling for keyboard navigation
-    const focusableElements = [
-      this.elements.workloadTemplate,
-      this.elements.totalMemory,
-      this.elements.totalMemorySlider,
-      this.elements.reservedMemory,
-      this.elements.reservedMemorySlider,
-      this.elements.otherTasksMemory,
-      this.elements.otherTasksMemorySlider,
-      this.elements.osType,
-      this.elements.storageType,
-      this.elements.generateConfigBtn,
-      this.elements.copyConfigBtn,
-      this.elements.downloadConfigBtn,
-      this.elements.exportOptionsBtn,
-      this.elements.configCopyBtn,
-      this.elements.helpButton,
-      this.elements.shareButton,
-      this.elements.resetButton
-    ].filter(Boolean);
-
-    focusableElements.forEach(element => {
-      element.addEventListener('focus', () => {
-        element.style.outline = '2px solid #3b82f6';
-        element.style.outlineOffset = '2px';
-      });
-      
-      element.addEventListener('blur', () => {
-        element.style.outline = '';
-        element.style.outlineOffset = '';
-      });
+      element.setAttribute('aria-describedby', descId);
     });
   }
 
@@ -336,18 +296,6 @@ class DOMCache {
     });
   }
 
-  // Performance monitoring
-  measurePerformance(label, fn) {
-    const startTime = performance.now();
-    const result = fn();
-    const endTime = performance.now();
-    
-    if (endTime - startTime > 10) { // Log if operation takes more than 10ms
-      console.log(`${label} took ${endTime - startTime} milliseconds`);
-    }
-    
-    return result;
-  }
 }
 
 // Create and export singleton instance

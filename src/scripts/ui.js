@@ -70,7 +70,7 @@ export class UIManager {
     });
 
     // System configuration changes
-    ['osType', 'storageType'].forEach(id => {
+    ['osType', 'storageType', 'dbSoftware'].forEach(id => {
       domCache.addEventListener(id, 'change', () => {
         this.debouncedCalculate();
       });
@@ -942,6 +942,8 @@ export class UIManager {
    * Collect all input values from the form
    */
   collectInputs() {
+    const dbSoftware = domCache.getValue('dbSoftware') || 'mysql-8.0';
+    const [dbEngine, dbVersion] = dbSoftware.split('-');
     return {
       totalMemory: parseFloat(domCache.getValue('totalMemory')) || 16,
       reservedMemory: parseFloat(domCache.getValue('reservedMemory')) || 0,
@@ -949,7 +951,9 @@ export class UIManager {
       osType: domCache.getValue('osType') || 'linux',
       storageType: domCache.getValue('storageType') || 'ssd',
       template: domCache.getValue('workloadTemplate') || 'custom',
-      dbType: this.currentDbType
+      dbType: this.currentDbType,
+      dbEngine,   // 'mysql' | 'mariadb'
+      dbVersion   // '8.0' | '8.4' | '10.6' | '10.11' | '11.4'
     };
   }
 
@@ -992,13 +996,13 @@ export class UIManager {
       <h2 class="text-xl font-semibold mb-3 text-blue-600">Memory Allocation</h2>
       <div class="grid grid-cols-2 gap-2 mb-4">
         <div>Total Server Memory:</div>
-        <div>${formatBytes(totalMemory * 1024 * 1024 * 1024)}</div>
+        <div>${totalMemory} GB</div>
         <div>Reserved for OS:</div>
-        <div>${formatBytes(reservedMemory * 1024 * 1024 * 1024)}</div>
+        <div>${reservedMemory} GB</div>
         <div>Other Tasks:</div>
-        <div>${formatBytes(otherTasksMemory * 1024 * 1024 * 1024)}</div>
+        <div>${otherTasksMemory} GB</div>
         <div class="font-semibold">Available for ${dbLabel}:</div>
-        <div class="font-semibold">${formatBytes(availableMemory * 1024 * 1024 * 1024)}</div>
+        <div class="font-semibold">${availableMemory.toFixed(1)} GB</div>
       </div>
 
       <h2 class="text-xl font-semibold mb-3 text-blue-600">Recommended Settings</h2>
@@ -1359,7 +1363,6 @@ export class UIManager {
       const configFormat = this.currentDbType === 'postgresql' ? 'postgresql.conf' : 'my.cnf';
       const config = configGenerator.generateConfig(this.currentResults, configFormat, {
         includeComments: true,
-        mysqlVersion: '8.0',
         includeReplication: true,
         includeLogging: true
       });

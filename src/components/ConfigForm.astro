@@ -2,6 +2,31 @@
 ---
 <form role="form" aria-label="Database Configuration Settings" class="mt-4">
 
+  <!-- Database Software + Version -->
+  <div class="mb-5">
+    <label for="dbSoftware" class="block text-sm font-semibold text-zinc-700 mb-1.5">
+      Database Software
+    </label>
+    <select
+      id="dbSoftware"
+      class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      aria-describedby="dbSoftware-help"
+    >
+      <optgroup label="MySQL">
+        <option value="mysql-8.0">MySQL 8.0</option>
+        <option value="mysql-8.4">MySQL 8.4 LTS</option>
+      </optgroup>
+      <optgroup label="MariaDB">
+        <option value="mariadb-10.6">MariaDB 10.6</option>
+        <option value="mariadb-10.11">MariaDB 10.11 LTS</option>
+        <option value="mariadb-11.4">MariaDB 11.4 LTS</option>
+      </optgroup>
+    </select>
+    <p id="dbSoftware-help" class="mt-1 text-xs text-zinc-500">
+      Settings differ between MySQL and MariaDB versions — each version generates the correct config.
+    </p>
+  </div>
+
   <!-- Workload Template -->
   <div class="mb-5">
     <label for="workloadTemplate" class="block text-sm font-semibold text-zinc-700 mb-1.5">
