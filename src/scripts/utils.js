@@ -303,13 +303,10 @@ export function calculateBufferPoolInstances(bufferPoolSize, totalMemoryGB) {
   if (bufferPoolGB >= 64) {
     instances = Math.ceil(bufferPoolGB);
   } else if (bufferPoolGB >= 32) {
-    // Medium-large pools: 1 instance per 1.5GB
     instances = Math.ceil(bufferPoolGB / 1.5);
   } else if (bufferPoolGB >= 16) {
-    // Medium pools: 1 instance per 2GB
     instances = Math.ceil(bufferPoolGB / 2);
   } else {
-    // Smaller pools: use original logic (1 instance per GB, capped at 16)
     instances = Math.min(Math.ceil(bufferPoolGB), 16);
   }
 
