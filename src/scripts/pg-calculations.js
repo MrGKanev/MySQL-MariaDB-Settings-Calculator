@@ -69,7 +69,7 @@ export class PostgreSQLCalculator {
   performCalculations(inputs, templateSettings) {
     const { totalMemory, reservedMemory, otherTasksMemory, storageType } = inputs;
 
-    const availableMemory = Math.max(0.1, totalMemory - reservedMemory - otherTasksMemory);
+    const availableMemory = Math.max(POSTGRESQL_CONSTANTS.MIN_VIABLE_MEMORY_GB, totalMemory - reservedMemory - otherTasksMemory);
     const availableMemoryBytes = convertGBToBytes(availableMemory);
 
     let calculations = this.calculateBaseSettings(availableMemory, availableMemoryBytes, totalMemory, storageType, inputs);

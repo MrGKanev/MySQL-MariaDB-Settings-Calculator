@@ -90,13 +90,8 @@ export class MySQLCalculator {
     const { totalMemory, reservedMemory, otherTasksMemory, osType, storageType } = inputs;
 
     // Calculate available memory with safeguard
-    const availableMemory = Math.max(0.1, totalMemory - reservedMemory - otherTasksMemory);
+    const availableMemory = Math.max(CONSTANTS.MIN_VIABLE_MEMORY_GB, totalMemory - reservedMemory - otherTasksMemory);
     const availableMemoryBytes = convertGBToBytes(availableMemory);
-
-    // Ensure we have minimum viable memory
-    if (availableMemory < 0.1) {
-      console.warn('Available memory is too low:', availableMemory, 'GB. Using minimum of 0.1 GB');
-    }
 
     // Get storage optimizations
     const storageOpts = getStorageOptimizations(storageType);
@@ -457,10 +452,8 @@ export class MySQLCalculator {
 
     // Additional InnoDB settings optimized for performance
     enhanced.innodb_io_capacity_max = Math.floor(calculations.innodb_io_capacity * 2);
-    enhanced.innodb_page_cleaners = Math.max(
-      enhanced.innodb_buffer_pool_instances, 
-      totalMemory > 16 ? Math.min(16, Math.floor(totalMemory / 8)) : 1
-    );
+    const pageCleaners = totalMemory > 16 ? Math.min(16, Math.floor(totalMemory / 8)) : 1;
+    enhanced.innodb_page_cleaners = Math.min(pageCleaners, enhanced.innodb_buffer_pool_instances);
     enhanced.innodb_purge_threads = totalMemory > 16 ? Math.min(32, Math.floor(totalMemory / 4)) : 1;
 
     // Performance schema setting - enable for servers with adequate memory
@@ -594,7 +587,7 @@ export class MySQLCalculator {
 
     // Warning about buffer pool instances ratio
     const bufferPoolGB = convertBytesToGB(calculations.innodb_buffer_pool_size);
-    const expectedInstances = bufferPoolGB >= 64 ? bufferPoolGB : Math.ceil(bufferPoolGB / 2);
+    const expectedInstances = calculateBufferPoolInstances(calculations.innodb_buffer_pool_size, totalMemory);
     if (calculations.innodb_buffer_pool_instances < expectedInstances * 0.5 && bufferPoolGB >= 16) {
       recommendations.push(`WARNING: Your buffer pool has ${calculations.innodb_buffer_pool_instances} instances for ${bufferPoolGB.toFixed(1)}GB. Research recommends 1 instance per 1-2GB of buffer pool (${expectedInstances} instances) to reduce contention on larger servers.`);
     }

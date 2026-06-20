@@ -26,8 +26,14 @@ export class ConfigGenerator {
     }
 
     const config = generator(results, options);
-    this.lastGeneratedConfig = { format, config, timestamp: new Date().toISOString() };
-    
+    const validation = this.validateConfig(config, format);
+
+    if (!validation.valid) {
+      throw new Error(`Generated config validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    this.lastGeneratedConfig = { format, config, timestamp: new Date().toISOString(), warnings: validation.warnings };
+
     return config;
   }
 
@@ -198,9 +204,8 @@ export class ConfigGenerator {
 
     // MySQL 8.4+ uses innodb_redo_log_capacity; older MySQL and MariaDB use innodb_log_file_size
     if (isMySQL84plus) {
-      // innodb_redo_log_capacity = innodb_log_file_size * innodb_log_files_in_group (default 2)
-      const redoLogCapacity = calculations.innodb_log_file_size * 2;
-      lines.push(`innodb_redo_log_capacity       = ${fmt(redoLogCapacity)}`);
+      // As of MySQL 8.0.30 the redo log is a single pool; capacity equals the former log_file_size directly
+      lines.push(`innodb_redo_log_capacity       = ${fmt(calculations.innodb_log_file_size)}`);
     } else {
       lines.push(`innodb_log_file_size           = ${fmt(calculations.innodb_log_file_size)}`);
     }

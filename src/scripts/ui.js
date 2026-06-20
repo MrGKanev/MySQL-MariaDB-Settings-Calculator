@@ -790,10 +790,11 @@ export class UIManager {
     });
 
     input.addEventListener('input', () => {
+      const min = parseFloat(input.min) || 0;
       let value = parseFloat(input.value);
-      if (isNaN(value)) value = 0;
+      if (isNaN(value)) value = min;
       if (value > max) value = max;
-      if (value < 0) value = 0;
+      if (value < min) value = min;
       
       input.value = value;
       slider.value = value;
@@ -847,15 +848,24 @@ export class UIManager {
       }
     }
 
-    const characteristics = template.characteristics 
-      ? template.characteristics.map(char => `• ${char}`).join('\n')
-      : '';
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'font-medium text-blue-800';
+    nameDiv.textContent = template.name;
 
-    infoElement.innerHTML = `
-      <div class="font-medium text-blue-800">${template.name}</div>
-      <div class="text-blue-700 mb-2">${template.description}</div>
-      ${characteristics ? `<div class="text-blue-600 text-xs whitespace-pre-line">${characteristics}</div>` : ''}
-    `;
+    const descDiv = document.createElement('div');
+    descDiv.className = 'text-blue-700 mb-2';
+    descDiv.textContent = template.description;
+
+    const children = [nameDiv, descDiv];
+
+    if (template.characteristics && template.characteristics.length > 0) {
+      const charDiv = document.createElement('div');
+      charDiv.className = 'text-blue-600 text-xs whitespace-pre-line';
+      charDiv.textContent = template.characteristics.map(char => `• ${char}`).join('\n');
+      children.push(charDiv);
+    }
+
+    infoElement.replaceChildren(...children);
 
     // Auto-hide after a few seconds
     setTimeout(() => {
@@ -971,56 +981,92 @@ export class UIManager {
       this.resetPerformanceScore();
       // Still show partial results if we have calculations
       if (calculations) {
-        const resultsHTML = this.buildResultsHTML(inputs, calculations);
-        domCache.setHTML('results', resultsHTML);
+        const resultsContainer = domCache.get('results');
+        if (resultsContainer) {
+          resultsContainer.replaceChildren(this.buildResultsFragment(inputs, calculations));
+        }
       }
       return;
     } else {
       this.hideError();
     }
 
-    // Build results HTML
-    const resultsHTML = this.buildResultsHTML(inputs, calculations);
-    domCache.setHTML('results', resultsHTML);
+    // Build results DOM
+    const resultsContainer = domCache.get('results');
+    if (resultsContainer) {
+      resultsContainer.replaceChildren(this.buildResultsFragment(inputs, calculations));
+    }
   }
 
   /**
-   * Build the results HTML content
+   * Build the results DOM fragment
    */
-  buildResultsHTML(inputs, calculations) {
+  buildResultsFragment(inputs, calculations) {
     const { totalMemory, reservedMemory, otherTasksMemory, availableMemory } = inputs;
-
     const dbLabel = this.currentDbType === 'postgresql' ? 'PostgreSQL' : 'MySQL/MariaDB';
 
-    return `
-      <h2 class="text-xl font-semibold mb-3 text-blue-600">Memory Allocation</h2>
-      <div class="grid grid-cols-2 gap-2 mb-4">
-        <div>Total Server Memory:</div>
-        <div>${totalMemory} GB</div>
-        <div>Reserved for OS:</div>
-        <div>${reservedMemory} GB</div>
-        <div>Other Tasks:</div>
-        <div>${otherTasksMemory} GB</div>
-        <div class="font-semibold">Available for ${dbLabel}:</div>
-        <div class="font-semibold">${availableMemory.toFixed(1)} GB</div>
-      </div>
+    const frag = document.createDocumentFragment();
 
-      <h2 class="text-xl font-semibold mb-3 text-blue-600">Recommended Settings</h2>
-      <div class="grid grid-cols-2 gap-2">
-        ${this.currentDbType === 'postgresql' ? this.generatePostgreSQLSettingsRows(calculations) : this.generateSettingsRows(calculations)}
-      </div>
+    const memHeader = document.createElement('h2');
+    memHeader.className = 'text-xl font-semibold mb-3 text-blue-600';
+    memHeader.textContent = 'Memory Allocation';
+    frag.appendChild(memHeader);
 
-      <p class="mt-4 text-sm text-zinc-600">
-        <strong>Note:</strong> These are general recommendations based on your inputs.
-        Always test configurations in a development environment and monitor performance in production.
-      </p>
-    `;
+    const memGrid = document.createElement('div');
+    memGrid.className = 'grid grid-cols-2 gap-2 mb-4';
+
+    for (const [label, value] of [
+      ['Total Server Memory:', `${totalMemory} GB`],
+      ['Reserved for OS:', `${reservedMemory} GB`],
+      ['Other Tasks:', `${otherTasksMemory} GB`],
+    ]) {
+      const lDiv = document.createElement('div');
+      lDiv.textContent = label;
+      const vDiv = document.createElement('div');
+      vDiv.textContent = value;
+      memGrid.appendChild(lDiv);
+      memGrid.appendChild(vDiv);
+    }
+
+    const availLabel = document.createElement('div');
+    availLabel.className = 'font-semibold';
+    availLabel.textContent = `Available for ${dbLabel}:`;
+    const availValue = document.createElement('div');
+    availValue.className = 'font-semibold';
+    availValue.textContent = `${availableMemory.toFixed(1)} GB`;
+    memGrid.appendChild(availLabel);
+    memGrid.appendChild(availValue);
+    frag.appendChild(memGrid);
+
+    const settingsHeader = document.createElement('h2');
+    settingsHeader.className = 'text-xl font-semibold mb-3 text-blue-600';
+    settingsHeader.textContent = 'Recommended Settings';
+    frag.appendChild(settingsHeader);
+
+    const settingsGrid = document.createElement('div');
+    settingsGrid.className = 'grid grid-cols-2 gap-2';
+    if (this.currentDbType === 'postgresql') {
+      this.appendPostgreSQLSettingsRows(settingsGrid, calculations);
+    } else {
+      this.appendMySQLSettingsRows(settingsGrid, calculations);
+    }
+    frag.appendChild(settingsGrid);
+
+    const note = document.createElement('p');
+    note.className = 'mt-4 text-sm text-zinc-600';
+    const strong = document.createElement('strong');
+    strong.textContent = 'Note:';
+    note.appendChild(strong);
+    note.append(' These are general recommendations based on your inputs. Always test configurations in a development environment and monitor performance in production.');
+    frag.appendChild(note);
+
+    return frag;
   }
 
   /**
-   * Generate settings rows HTML
+   * Append MySQL/MariaDB setting rows into a grid container
    */
-  generateSettingsRows(calculations) {
+  appendMySQLSettingsRows(container, calculations) {
     const settings = [
       ['innodb_buffer_pool_size', 'innodb-parameters.html#sysvar_innodb_buffer_pool_size'],
       ['innodb_buffer_pool_instances', 'innodb-parameters.html#sysvar_innodb_buffer_pool_instances'],
@@ -1051,31 +1097,38 @@ export class UIManager {
       'join_buffer_size'
     ]);
 
-    return settings.map(([setting, docPath]) => {
+    for (const [setting, docPath] of settings) {
       const value = calculations[setting];
       const formattedValue = typeof value === 'number' && byteSettings.has(setting)
         ? formatBytes(value)
         : value;
 
-      const docUrl = docPath.includes('5.7') 
+      const docUrl = docPath.includes('5.7')
         ? `https://dev.mysql.com/doc/refman/5.7/en/${docPath}`
         : `https://dev.mysql.com/doc/refman/8.0/en/${docPath}`;
 
-      return `
-        <div>
-          <a href="${docUrl}" target="_blank" class="text-blue-500 hover:underline" rel="noopener">
-            ${setting}
-          </a> =
-        </div>
-        <div>${formattedValue}</div>
-      `;
-    }).join('');
+      const labelDiv = document.createElement('div');
+      const link = document.createElement('a');
+      link.href = docUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'text-blue-500 hover:underline';
+      link.textContent = setting;
+      labelDiv.appendChild(link);
+      labelDiv.append(' =');
+
+      const valueDiv = document.createElement('div');
+      valueDiv.textContent = String(formattedValue ?? '');
+
+      container.appendChild(labelDiv);
+      container.appendChild(valueDiv);
+    }
   }
 
   /**
-   * Generate PostgreSQL settings rows HTML
+   * Append PostgreSQL setting rows into a grid container
    */
-  generatePostgreSQLSettingsRows(calculations) {
+  appendPostgreSQLSettingsRows(container, calculations) {
     const settings = [
       ['shared_buffers', 'runtime-config-resource.html#GUC-SHARED-BUFFERS'],
       ['effective_cache_size', 'runtime-config-query.html#GUC-EFFECTIVE-CACHE-SIZE'],
@@ -1101,9 +1154,9 @@ export class UIManager {
       'maintenance_work_mem', 'wal_buffers'
     ]);
 
-    return settings.map(([setting, docPath]) => {
+    for (const [setting, docPath] of settings) {
       const value = calculations[setting];
-      if (value === undefined) return '';
+      if (value === undefined) continue;
 
       const formattedValue = typeof value === 'number' && byteSettings.has(setting)
         ? formatBytes(value)
@@ -1111,15 +1164,22 @@ export class UIManager {
 
       const docUrl = `https://www.postgresql.org/docs/current/${docPath}`;
 
-      return `
-        <div>
-          <a href="${docUrl}" target="_blank" class="text-blue-500 hover:underline" rel="noopener">
-            ${setting}
-          </a> =
-        </div>
-        <div>${formattedValue}</div>
-      `;
-    }).join('');
+      const labelDiv = document.createElement('div');
+      const link = document.createElement('a');
+      link.href = docUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'text-blue-500 hover:underline';
+      link.textContent = setting;
+      labelDiv.appendChild(link);
+      labelDiv.append(' =');
+
+      const valueDiv = document.createElement('div');
+      valueDiv.textContent = String(formattedValue ?? '');
+
+      container.appendChild(labelDiv);
+      container.appendChild(valueDiv);
+    }
   }
 
   /**
@@ -1274,25 +1334,43 @@ export class UIManager {
    * Update score breakdown bars
    */
   updateScoreBreakdown(scores) {
-    const breakdownHTML = Object.entries(scores).map(([category, score]) => {
+    const cards = Object.entries(scores).map(([category, score]) => {
       const displayName = category.replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase());
-      
-      return `
-        <div class="bg-zinc-50 p-3 rounded-md">
-          <div class="text-sm font-medium">${displayName}</div>
-          <div class="flex items-center mt-1">
-            <div class="bg-zinc-200 h-2 rounded-full flex-grow">
-              <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                   style="width: ${Math.max(0, score * 5)}%"></div>
-            </div>
-            <span class="ml-2 text-sm font-medium">${Math.round(score)}/20</span>
-          </div>
-        </div>
-      `;
-    }).join('');
 
-    domCache.setHTML('scoreBreakdown', breakdownHTML);
+      const card = document.createElement('div');
+      card.className = 'bg-zinc-50 p-3 rounded-md';
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'text-sm font-medium';
+      nameDiv.textContent = displayName;
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center mt-1';
+
+      const track = document.createElement('div');
+      track.className = 'bg-zinc-200 h-2 rounded-full flex-grow';
+
+      const fill = document.createElement('div');
+      fill.className = 'bg-blue-500 h-2 rounded-full transition-all duration-300';
+      fill.style.width = `${Math.max(0, score * 5)}%`;
+
+      const label = document.createElement('span');
+      label.className = 'ml-2 text-sm font-medium';
+      label.textContent = `${Math.round(score)}/20`;
+
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(label);
+      card.appendChild(nameDiv);
+      card.appendChild(row);
+      return card;
+    });
+
+    const container = domCache.get('scoreBreakdown');
+    if (container) {
+      container.replaceChildren(...cards);
+    }
   }
 
   /**
@@ -1311,10 +1389,6 @@ export class UIManager {
         recommendations = ['Your MySQL/MariaDB configuration is well optimized for your hardware. Monitor cache hit ratios and query performance to fine-tune further based on your specific workload patterns.'];
       }
 
-      const recommendationsHTML = recommendations
-        .map(rec => `<li class="mb-2">${rec}</li>`)
-        .join('');
-
       const recommendationsContainer = domCache.get('scoreRecommendations');
       if (!recommendationsContainer) {
         console.error('Recommendations container element not found in DOM');
@@ -1327,7 +1401,12 @@ export class UIManager {
         return;
       }
 
-      ul.innerHTML = recommendationsHTML;
+      ul.replaceChildren(...recommendations.map(rec => {
+        const li = document.createElement('li');
+        li.className = 'mb-2';
+        li.textContent = rec;
+        return li;
+      }));
     } catch (error) {
       console.error('Error updating recommendations:', error);
     }

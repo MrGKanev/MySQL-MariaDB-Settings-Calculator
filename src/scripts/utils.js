@@ -20,6 +20,9 @@ export const CONSTANTS = {
   // Connection settings
   CONNECTIONS_PER_GB: 100,
 
+  // Minimum viable memory available to MySQL/MariaDB (GB)
+  MIN_VIABLE_MEMORY_GB: 1,
+
   // Buffer limits (in bytes)
   MAX_LOG_BUFFER_SIZE: 16 * 1024 * 1024, // 16MB
   MAX_SORT_BUFFER_SIZE: 8 * 1024 * 1024, // 8MB
@@ -130,7 +133,7 @@ export function formatBytes(bytes) {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   if (bytes === 0) return "0 Bytes";
   const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+  return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + " " + sizes[i];
 }
 
 function formatBytesDB(bytes, units) {
@@ -206,7 +209,10 @@ export const POSTGRESQL_CONSTANTS = {
   },
 
   // Calculation cache size
-  CALCULATION_CACHE_SIZE: 15
+  CALCULATION_CACHE_SIZE: 15,
+
+  // Minimum viable memory available to PostgreSQL (GB)
+  MIN_VIABLE_MEMORY_GB: 1
 };
 
 export function clamp(value, min, max) {
@@ -237,8 +243,8 @@ export function validateMemoryInputs(totalMemory, reservedMemory, otherTasksMemo
     errors.push("Other tasks memory cannot be negative");
   }
   
-  if (reservedMemory + otherTasksMemory + 1 > totalMemory) {
-    errors.push("Reserved memory + Other tasks memory + 1 GB cannot exceed total server memory");
+  if (totalMemory - reservedMemory - otherTasksMemory < CONSTANTS.MIN_VIABLE_MEMORY_GB) {
+    errors.push(`At least ${CONSTANTS.MIN_VIABLE_MEMORY_GB} GB must remain available for MySQL/MariaDB after reserved and other-tasks memory`);
   }
   
   return errors;
@@ -291,13 +297,10 @@ export function calculateBufferPoolInstances(bufferPoolSize, totalMemoryGB) {
     return 1;
   }
 
-  // Research shows: 1 instance per 1-2GB of buffer pool is optimal
-  // For large buffer pools (64GB+), we need more instances to reduce contention
-  // Example: 96GB buffer pool should have 48-96 instances, not capped at 16
+  // Target ~1 instance per 1-2 GB; hard cap at 64 (MySQL/MariaDB limit)
   let instances;
 
   if (bufferPoolGB >= 64) {
-    // Large pools: 1 instance per 1GB (more aggressive parallelization)
     instances = Math.ceil(bufferPoolGB);
   } else if (bufferPoolGB >= 32) {
     // Medium-large pools: 1 instance per 1.5GB
@@ -310,7 +313,7 @@ export function calculateBufferPoolInstances(bufferPoolSize, totalMemoryGB) {
     instances = Math.min(Math.ceil(bufferPoolGB), 16);
   }
 
-  return instances;
+  return Math.min(instances, 64);
 }
 
 export function calculateIOThreads(totalMemoryGB) {
