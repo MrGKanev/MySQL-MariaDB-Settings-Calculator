@@ -1048,7 +1048,7 @@ export class UIManager {
     if (this.currentDbType === 'postgresql') {
       this.appendPostgreSQLSettingsRows(settingsGrid, calculations);
     } else {
-      this.appendMySQLSettingsRows(settingsGrid, calculations);
+      this.appendMySQLSettingsRows(settingsGrid, calculations, inputs);
     }
     frag.appendChild(settingsGrid);
 
@@ -1066,7 +1066,7 @@ export class UIManager {
   /**
    * Append MySQL/MariaDB setting rows into a grid container
    */
-  appendMySQLSettingsRows(container, calculations) {
+  appendMySQLSettingsRows(container, calculations, inputs = {}) {
     const settings = [
       ['innodb_buffer_pool_size', 'innodb-parameters.html#sysvar_innodb_buffer_pool_size'],
       ['innodb_buffer_pool_instances', 'innodb-parameters.html#sysvar_innodb_buffer_pool_instances'],
@@ -1103,9 +1103,9 @@ export class UIManager {
         ? formatBytes(value)
         : value;
 
-      const docUrl = docPath.includes('5.7')
-        ? `https://dev.mysql.com/doc/refman/5.7/en/${docPath}`
-        : `https://dev.mysql.com/doc/refman/8.0/en/${docPath}`;
+      const { dbEngine, dbVersion } = inputs;
+      const mysqlVersion = dbEngine === 'mysql' ? (dbVersion || '8.0') : '8.0';
+      const docUrl = `https://dev.mysql.com/doc/refman/${mysqlVersion}/en/${docPath}`;
 
       const labelDiv = document.createElement('div');
       const link = document.createElement('a');

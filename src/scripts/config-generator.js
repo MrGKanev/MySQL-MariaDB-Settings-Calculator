@@ -559,17 +559,18 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
     }
 
     const { serviceName = 'mysql' } = options;
+    const fmt = formatBytesMySQL;
     return [
       `# Docker Compose MySQL Configuration`,
       `# Add these environment variables to your ${serviceName} service`,
       ``,
       `environment:`,
-      `  MYSQL_INNODB_BUFFER_POOL_SIZE: "${calculations.innodb_buffer_pool_size}"`,
-      `  MYSQL_INNODB_LOG_FILE_SIZE: "${calculations.innodb_log_file_size}"`,
+      `  MYSQL_INNODB_BUFFER_POOL_SIZE: "${fmt(calculations.innodb_buffer_pool_size)}"`,
+      `  MYSQL_INNODB_LOG_FILE_SIZE: "${fmt(calculations.innodb_log_file_size)}"`,
       `  MYSQL_MAX_CONNECTIONS: "${calculations.max_connections}"`,
-      `  MYSQL_KEY_BUFFER_SIZE: "${calculations.key_buffer_size}"`,
-      `  MYSQL_TMP_TABLE_SIZE: "${calculations.tmp_table_size}"`,
-      `  MYSQL_SORT_BUFFER_SIZE: "${calculations.sort_buffer_size}"`,
+      `  MYSQL_KEY_BUFFER_SIZE: "${fmt(calculations.key_buffer_size)}"`,
+      `  MYSQL_TMP_TABLE_SIZE: "${fmt(calculations.tmp_table_size)}"`,
+      `  MYSQL_SORT_BUFFER_SIZE: "${fmt(calculations.sort_buffer_size)}"`,
       `  MYSQL_INNODB_IO_CAPACITY: "${calculations.innodb_io_capacity}"`,
       ``,
       `# Or mount a custom my.cnf file:`,
