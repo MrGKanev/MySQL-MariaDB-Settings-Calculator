@@ -24,7 +24,7 @@ async function initialize() {
       }
     });
   } catch (error) {
-    console.error('Failed to initialize MySQL Calculator:', error);
+    console.error('Failed to initialize Database Settings Calculator:', error);
     const container = document.querySelector('.container') || document.body;
     container.insertAdjacentHTML('afterbegin', `
       <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:1rem;border-radius:0.375rem;margin:1rem">

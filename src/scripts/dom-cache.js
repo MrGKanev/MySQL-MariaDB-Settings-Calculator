@@ -47,13 +47,6 @@ class DOMCache {
       this.elements.shareButton = document.getElementById('shareButton');
       this.elements.resetButton = document.getElementById('resetButton');
 
-      // Database type toggle elements
-      this.elements.dbToggleMySQL = document.getElementById('dbToggleMySQL');
-      this.elements.dbTogglePostgreSQL = document.getElementById('dbTogglePostgreSQL');
-      this.elements.pageTitle = document.getElementById('pageTitle');
-      this.elements.pageDescription = document.getElementById('pageDescription');
-      this.elements.faqContent = document.getElementById('faqContent');
-      this.elements.sidebarContent = document.getElementById('sidebarContent');
       this.elements.exportConfigBtn = document.getElementById('exportConfigBtn');
 
       // Footer elements
@@ -98,6 +91,7 @@ class DOMCache {
     Object.entries(descriptions).forEach(([elementId, description]) => {
       const element = this.elements[elementId];
       if (!element) return;
+      if (element.type === 'hidden') return;
       const descId = `${elementId}-desc`;
       if (!document.getElementById(descId)) {
         const span = document.createElement('span');
@@ -106,7 +100,9 @@ class DOMCache {
         span.textContent = description;
         element.insertAdjacentElement('afterend', span);
       }
-      element.setAttribute('aria-describedby', descId);
+      const describedBy = new Set((element.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+      describedBy.add(descId);
+      element.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
     });
   }
 
@@ -222,18 +218,6 @@ class DOMCache {
     const element = this.get(elementId);
     if (element) {
       element.textContent = text;
-    }
-  }
-
-  getHTML(elementId) {
-    const element = this.get(elementId);
-    return element ? element.innerHTML : null;
-  }
-
-  setHTML(elementId, html) {
-    const element = this.get(elementId);
-    if (element) {
-      element.innerHTML = html;
     }
   }
 

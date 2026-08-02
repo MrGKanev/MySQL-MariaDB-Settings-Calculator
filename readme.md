@@ -1,6 +1,6 @@
 # MySQL, MariaDB & PostgreSQL Settings Calculator
 
-A web-based tool for generating optimized database configurations based on your server's hardware. Supports MySQL, MariaDB, and PostgreSQL. Built with [Astro 6](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com).
+A web-based tool for generating optimized database configurations based on your server's hardware. Supports MySQL, MariaDB, and PostgreSQL. Built with [Astro 7](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com).
 
 **Live:**
 - MySQL/MariaDB: https://database.gkanev.com/
@@ -22,8 +22,8 @@ A web-based tool for generating optimized database configurations based on your 
 ## Getting Started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open http://localhost:4321 in your browser.
@@ -32,9 +32,9 @@ Open http://localhost:4321 in your browser.
 
 | Command           | Description                          |
 |-------------------|--------------------------------------|
-| `npm run dev`     | Start dev server with hot reload     |
-| `npm run build`   | Build for production → `dist/`       |
-| `npm run preview` | Preview the production build locally |
+| `pnpm dev`     | Start dev server with hot reload     |
+| `pnpm build`   | Build for production -> `dist/`      |
+| `pnpm preview` | Preview the production build locally |
 
 ## Calculation Methods
 
@@ -57,7 +57,7 @@ Open http://localhost:4321 in your browser.
 | `work_mem` | (RAM − shared_buffers) / (max_connections × 3) |
 | `maintenance_work_mem` | 5% of available memory (max 2GB) |
 | `wal_buffers` | 3% of shared_buffers (min 14MB) |
-| `random_page_cost` | 1.1 (NVMe), 1.5 (SSD), 4.0 (HDD) |
+| `random_page_cost` | 1.1 (NVMe/SSD), 4.0 (HDD) |
 
 All values are starting points. Monitor your database and adjust based on actual workload.
 

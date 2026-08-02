@@ -1,31 +1,56 @@
 ---
+interface Props {
+  dbType?: 'mysql' | 'postgresql';
+}
+
+const { dbType = 'mysql' } = Astro.props;
+const isPostgres = dbType === 'postgresql';
+
+const workloadOptions = isPostgres ? [
+  ['custom', 'Custom Configuration'],
+  ['pg_oltp', 'OLTP (Online Transaction Processing)'],
+  ['pg_olap', 'OLAP (Online Analytical Processing)'],
+  ['pg_mixed', 'Mixed Workload'],
+  ['pg_webserver', 'Web Application'],
+  ['pg_smallserver', 'Small VPS Server']
+] : [
+  ['custom', 'Custom Configuration'],
+  ['oltp', 'OLTP (Online Transaction Processing)'],
+  ['olap', 'OLAP (Online Analytical Processing)'],
+  ['mixed', 'Mixed Workload'],
+  ['webserver', 'Web Server'],
+  ['smallserver', 'Small VPS Server']
+];
 ---
 <form role="form" aria-label="Database Configuration Settings" class="mt-4">
 
-  <!-- Database Software + Version -->
-  <div class="mb-5">
-    <label for="dbSoftware" class="block text-sm font-semibold text-zinc-700 mb-1.5">
-      Database Software
-    </label>
-    <select
-      id="dbSoftware"
-      class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-      aria-describedby="dbSoftware-help"
-    >
-      <optgroup label="MySQL">
-        <option value="mysql-8.0">MySQL 8.0</option>
-        <option value="mysql-8.4">MySQL 8.4 LTS</option>
-      </optgroup>
-      <optgroup label="MariaDB">
-        <option value="mariadb-10.6">MariaDB 10.6</option>
-        <option value="mariadb-10.11">MariaDB 10.11 LTS</option>
-        <option value="mariadb-11.4">MariaDB 11.4 LTS</option>
-      </optgroup>
-    </select>
-    <p id="dbSoftware-help" class="mt-1 text-xs text-zinc-500">
-      Settings differ between MySQL and MariaDB versions — each version generates the correct config.
-    </p>
-  </div>
+  {isPostgres ? (
+    <input type="hidden" id="dbSoftware" value="postgresql-current" />
+  ) : (
+    <div class="mb-5">
+      <label for="dbSoftware" class="block text-sm font-semibold text-zinc-700 mb-1.5">
+        Database Software
+      </label>
+      <select
+        id="dbSoftware"
+        class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        aria-describedby="dbSoftware-help"
+      >
+        <optgroup label="MySQL">
+          <option value="mysql-8.0">MySQL 8.0</option>
+          <option value="mysql-8.4">MySQL 8.4 LTS</option>
+        </optgroup>
+        <optgroup label="MariaDB">
+          <option value="mariadb-10.6">MariaDB 10.6</option>
+          <option value="mariadb-10.11">MariaDB 10.11 LTS</option>
+          <option value="mariadb-11.4">MariaDB 11.4 LTS</option>
+        </optgroup>
+      </select>
+      <p id="dbSoftware-help" class="mt-1 text-xs text-zinc-500">
+        Settings differ between MySQL and MariaDB versions - each version generates the correct config.
+      </p>
+    </div>
+  )}
 
   <!-- Workload Template -->
   <div class="mb-5">
@@ -37,12 +62,9 @@
       class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
       aria-describedby="workloadTemplate-help"
     >
-      <option value="custom">Custom Configuration</option>
-      <option value="oltp">OLTP (Online Transaction Processing)</option>
-      <option value="olap">OLAP (Online Analytical Processing)</option>
-      <option value="mixed">Mixed Workload</option>
-      <option value="webserver">Web Server</option>
-      <option value="smallserver">Small VPS Server</option>
+      {workloadOptions.map(([value, label]) => (
+        <option value={value}>{label}</option>
+      ))}
     </select>
     <p id="workloadTemplate-help" class="mt-1 text-xs text-zinc-500">
       Select a predefined template or customize your own settings.
@@ -138,7 +160,9 @@
           <option value="windows">Windows</option>
           <option value="macos">macOS</option>
         </select>
-        <p id="osType-help" class="text-xs text-zinc-500">Affects InnoDB flush method</p>
+        <p id="osType-help" class="text-xs text-zinc-500">
+          {isPostgres ? 'Affects huge_pages setting recommendation' : 'Affects InnoDB flush method'}
+        </p>
       </div>
 
       <div class="flex flex-col gap-1.5">
@@ -152,7 +176,9 @@
           <option value="nvme">NVMe</option>
           <option value="hdd">HDD (Traditional)</option>
         </select>
-        <p id="storageType-help" class="text-xs text-zinc-500">Affects I/O capacity and optimizations</p>
+        <p id="storageType-help" class="text-xs text-zinc-500">
+          {isPostgres ? 'Affects random_page_cost and effective_io_concurrency settings' : 'Affects I/O capacity and optimizations'}
+        </p>
       </div>
     </div>
 

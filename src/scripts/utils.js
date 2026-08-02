@@ -244,7 +244,7 @@ export function validateMemoryInputs(totalMemory, reservedMemory, otherTasksMemo
   }
   
   if (totalMemory - reservedMemory - otherTasksMemory < CONSTANTS.MIN_VIABLE_MEMORY_GB) {
-    errors.push(`At least ${CONSTANTS.MIN_VIABLE_MEMORY_GB} GB must remain available for MySQL/MariaDB after reserved and other-tasks memory`);
+    errors.push(`At least ${CONSTANTS.MIN_VIABLE_MEMORY_GB} GB must remain available for the database after reserved and other-tasks memory`);
   }
   
   return errors;
