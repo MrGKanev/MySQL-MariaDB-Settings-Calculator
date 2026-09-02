@@ -1120,6 +1120,7 @@ export class UIManager {
       domCache.show('configOutput');
       domCache.show('copyConfigBtn');
       domCache.show('downloadConfigBtn');
+      domCache.show('exportOptionsBtn');
 
     } catch (error) {
       this.showError('Error generating configuration file.');
@@ -1300,13 +1301,6 @@ export class UIManager {
     }
 
     return configGenerator.generateShareableURL(this.currentResults);
-  }
-
-  /**
-   * Get current configuration for external use
-   */
-  getCurrentConfiguration() {
-    return this.currentResults;
   }
 
   /**

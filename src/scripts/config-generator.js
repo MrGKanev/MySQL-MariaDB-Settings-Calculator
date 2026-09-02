@@ -12,7 +12,8 @@ export class ConfigGenerator {
       'pg_hba.conf': this.generatePgHbaConf.bind(this),
       'json': this.generateJsonConfig.bind(this),
       'docker-compose': this.generateDockerComposeConfig.bind(this),
-      'kubernetes': this.generateKubernetesConfig.bind(this)
+      'kubernetes': this.generateKubernetesConfig.bind(this),
+      'apply-sql': this.generateApplyScript.bind(this)
     };
   }
 
@@ -644,13 +645,191 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
   }
 
   /**
+   * Format a value for a SET GLOBAL / ALTER SYSTEM SET statement
+   */
+  formatSqlValue(value, type, byteFormatter) {
+    switch (type) {
+      case 'bytes': return byteFormatter(value);
+      case 'string': return `'${value}'`;
+      default: return String(value);
+    }
+  }
+
+  /**
+   * MySQL/MariaDB settings this tool calculates, and whether each can be applied
+   * live with SET GLOBAL or requires a server restart to take effect.
+   * [configKey, calculationsKey, valueType, liveApplicable]
+   */
+  get mysqlApplySettings() {
+    return [
+      ['innodb_buffer_pool_size', 'innodb_buffer_pool_size', 'bytes', true],
+      ['key_buffer_size', 'key_buffer_size', 'bytes', true],
+      ['tmp_table_size', 'tmp_table_size', 'bytes', true],
+      ['max_heap_table_size', 'tmp_table_size', 'bytes', true],
+      ['sort_buffer_size', 'sort_buffer_size', 'bytes', true],
+      ['read_buffer_size', 'read_buffer_size', 'bytes', true],
+      ['read_rnd_buffer_size', 'read_rnd_buffer_size', 'bytes', true],
+      ['join_buffer_size', 'join_buffer_size', 'bytes', true],
+      ['table_definition_cache', 'table_definition_cache', 'raw', true],
+      ['table_open_cache', 'table_open_cache', 'raw', true],
+      ['max_connections', 'max_connections', 'raw', true],
+      ['max_allowed_packet', 'max_allowed_packet', 'raw', true],
+      ['thread_cache_size', 'thread_cache_size', 'raw', true],
+      ['innodb_flush_log_at_trx_commit', 'innodb_flush_log_at_trx_commit', 'raw', true],
+      ['innodb_file_per_table', 'innodb_file_per_table', 'raw', true],
+      ['innodb_io_capacity', 'innodb_io_capacity', 'raw', true],
+      ['innodb_io_capacity_max', 'innodb_io_capacity_max', 'raw', true],
+      ['innodb_thread_concurrency', 'innodb_thread_concurrency', 'raw', true],
+      ['innodb_flush_neighbors', 'innodb_flush_neighbors', 'raw', true],
+      ['innodb_adaptive_hash_index', 'innodb_adaptive_hash_index', 'raw', true],
+      ['innodb_change_buffering', 'innodb_change_buffering', 'string', true],
+      // Static variables: require a restart, listed for reference only
+      ['innodb_buffer_pool_instances', 'innodb_buffer_pool_instances', 'raw', false],
+      ['innodb_log_file_size', 'innodb_log_file_size', 'bytes', false],
+      ['innodb_log_buffer_size', 'innodb_log_buffer_size', 'bytes', false],
+      ['open_files_limit', 'open_files_limit', 'raw', false],
+      ['innodb_read_io_threads', 'innodb_read_io_threads', 'raw', false],
+      ['innodb_write_io_threads', 'innodb_write_io_threads', 'raw', false],
+      ['innodb_page_cleaners', 'innodb_page_cleaners', 'raw', false],
+      ['innodb_purge_threads', 'innodb_purge_threads', 'raw', false],
+      ['innodb_doublewrite', 'innodb_doublewrite', 'raw', false],
+      ['performance_schema', 'performance_schema', 'raw', false]
+    ];
+  }
+
+  /**
+   * PostgreSQL settings this tool calculates. ALTER SYSTEM SET works for all of
+   * them, but settings marked reloadable=false only take effect after a restart
+   * even though ALTER SYSTEM accepts them.
+   * [configKey, calculationsKey, valueType, reloadable]
+   */
+  get postgresqlApplySettings() {
+    return [
+      ['shared_buffers', 'shared_buffers', 'bytes', false],
+      ['effective_cache_size', 'effective_cache_size', 'bytes', true],
+      ['work_mem', 'work_mem', 'bytes', true],
+      ['maintenance_work_mem', 'maintenance_work_mem', 'bytes', true],
+      ['wal_buffers', 'wal_buffers', 'bytes', false],
+      ['max_wal_size', 'max_wal_size', 'string', true],
+      ['min_wal_size', 'min_wal_size', 'string', true],
+      ['wal_level', 'wal_level', 'string', false],
+      ['checkpoint_completion_target', 'checkpoint_completion_target', 'raw', true],
+      ['random_page_cost', 'random_page_cost', 'raw', true],
+      ['effective_io_concurrency', 'effective_io_concurrency', 'raw', true],
+      ['max_connections', 'max_connections', 'raw', false],
+      ['max_worker_processes', 'max_worker_processes', 'raw', false],
+      ['max_parallel_workers_per_gather', 'max_parallel_workers_per_gather', 'raw', true],
+      ['max_parallel_workers', 'max_parallel_workers', 'raw', true],
+      ['max_parallel_maintenance_workers', 'max_parallel_maintenance_workers', 'raw', true],
+      ['log_min_duration_statement', 'log_min_duration_statement', 'raw', true],
+      ['log_checkpoints', 'log_checkpoints', 'string', true],
+      ['log_connections', 'log_connections', 'string', true],
+      ['log_disconnections', 'log_disconnections', 'string', true],
+      ['log_lock_waits', 'log_lock_waits', 'string', true],
+      ['log_temp_files', 'log_temp_files', 'raw', true],
+      ['default_statistics_target', 'default_statistics_target', 'raw', true],
+      ['huge_pages', 'huge_pages', 'string', false]
+    ];
+  }
+
+  /**
+   * Generate a script that applies the calculated settings to a running server
+   */
+  generateApplyScript(results, options = {}) {
+    const { databaseType = 'mysql' } = options;
+    return databaseType === 'postgresql'
+      ? this.generatePostgreSQLApplyScript(results)
+      : this.generateMySQLApplyScript(results);
+  }
+
+  /**
+   * Generate SET GLOBAL script for MySQL/MariaDB
+   */
+  generateMySQLApplyScript(results) {
+    const { inputs, calculations } = results;
+    const isMariaDB = (inputs.dbEngine || 'mysql') === 'mariadb';
+    const settings = this.mysqlApplySettings;
+
+    const lines = [
+      '-- Runtime configuration script (SET GLOBAL)',
+      '-- Generated by Database Settings Calculator',
+      `-- Generated on: ${new Date().toISOString().split('T')[0]}`,
+      '--',
+      '-- Applies immediately but does NOT survive a restart.',
+      '-- MySQL 8.0.11+: use SET PERSIST instead of SET GLOBAL to also persist the value.',
+      '-- Otherwise, copy these values into your my.cnf (see the my.cnf export) to keep them after a restart.',
+      ''
+    ];
+
+    settings
+      .filter(([, , , liveApplicable]) => liveApplicable)
+      .forEach(([configKey, calcKey, type]) => {
+        const value = calculations[calcKey];
+        if (value === undefined) return;
+        lines.push(`SET GLOBAL ${configKey} = ${this.formatSqlValue(value, type, formatBytesMySQL)};`);
+      });
+
+    if (isMariaDB && calculations.query_cache_size !== undefined) {
+      lines.push(`SET GLOBAL query_cache_size = ${this.formatSqlValue(calculations.query_cache_size, 'bytes', formatBytesMySQL)};`);
+      lines.push(`SET GLOBAL query_cache_type = ${calculations.query_cache_size > 0 ? 1 : 0};`);
+    }
+
+    const restartOnly = settings.filter(([, , , liveApplicable]) => !liveApplicable);
+    lines.push('');
+    lines.push('-- Requires a server restart, cannot be applied live:');
+    restartOnly.forEach(([configKey, calcKey, type]) => {
+      const value = calculations[calcKey];
+      const shown = value !== undefined ? this.formatSqlValue(value, type, formatBytesMySQL) : 'n/a';
+      lines.push(`-- ${configKey} = ${shown}`);
+    });
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Generate ALTER SYSTEM SET script for PostgreSQL
+   */
+  generatePostgreSQLApplyScript(results) {
+    const { calculations } = results;
+    const settings = this.postgresqlApplySettings;
+
+    const lines = [
+      '-- Runtime configuration script (ALTER SYSTEM)',
+      '-- Generated by Database Settings Calculator',
+      `-- Generated on: ${new Date().toISOString().split('T')[0]}`,
+      '--',
+      '-- Writes to postgresql.auto.conf and reloads the config.',
+      '-- Settings listed as restart-required below only take effect after a full restart.',
+      ''
+    ];
+
+    settings.forEach(([configKey, calcKey, type]) => {
+      const value = calculations[calcKey];
+      if (value === undefined) return;
+      lines.push(`ALTER SYSTEM SET ${configKey} = ${this.formatSqlValue(value, type, formatBytesPostgreSQL)};`);
+    });
+
+    lines.push('');
+    lines.push('SELECT pg_reload_conf();');
+
+    const restartOnly = settings.filter(([, , , reloadable]) => !reloadable);
+    if (restartOnly.length) {
+      lines.push('');
+      lines.push('-- Restart required to take effect (reload is not enough):');
+      restartOnly.forEach(([configKey]) => lines.push(`-- ${configKey}`));
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
    * Export configuration to file
    */
   async exportToFile(results, format = 'my.cnf', filename = null, options = {}) {
     const config = this.generateConfig(results, format, options);
     
     if (!filename) {
-      filename = this.generateFilename(format);
+      filename = this.generateFilename(format, options);
     }
 
     const blob = new Blob([config], { type: this.getMimeType(format) });
@@ -788,7 +967,7 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
   /**
    * Generate appropriate filename for format
    */
-  generateFilename(format) {
+  generateFilename(format, options = {}) {
     const timestamp = new Date().toISOString().split('T')[0];
     const extensions = {
       'my.cnf': 'my.cnf',
@@ -796,13 +975,21 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
       'pg_hba.conf': 'conf',
       'json': 'json',
       'docker-compose': 'yml',
-      'kubernetes': 'yaml'
+      'kubernetes': 'yaml',
+      'apply-sql': 'sql'
     };
 
     const ext = extensions[format] || 'txt';
+    // json/docker-compose/kubernetes/apply-sql are shared formats whose content
+    // depends on databaseType, so the filename prefix must follow it too.
+    const isPostgres = (options.databaseType || 'mysql') === 'postgresql';
     const prefixes = {
       'postgresql.conf': 'postgresql',
       'pg_hba.conf': 'pg_hba',
+      'json': isPostgres ? 'postgresql-config' : 'mysql-config',
+      'docker-compose': isPostgres ? 'postgresql-compose' : 'mysql-compose',
+      'kubernetes': isPostgres ? 'postgresql-k8s' : 'mysql-k8s',
+      'apply-sql': isPostgres ? 'postgresql-apply' : 'mysql-apply'
     };
     const prefix = prefixes[format] || 'mysql-config';
     return `${prefix}-${timestamp}.${ext}`;
@@ -818,7 +1005,8 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
       'pg_hba.conf': 'text/plain',
       'json': 'application/json',
       'docker-compose': 'text/yaml',
-      'kubernetes': 'text/yaml'
+      'kubernetes': 'text/yaml',
+      'apply-sql': 'text/plain'
     };
 
     return mimeTypes[format] || 'text/plain';

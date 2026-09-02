@@ -70,6 +70,22 @@ const configFormat = isPostgres ? 'postgresql.conf' : 'my.cnf';
       >
         Download Docker Compose
       </button>
+      <button
+        type="button"
+        class="export-option w-full text-left px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none"
+        data-format="kubernetes"
+        role="menuitem"
+      >
+        Download Kubernetes YAML
+      </button>
+      <button
+        type="button"
+        class="export-option w-full text-left px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none"
+        data-format="apply-sql"
+        role="menuitem"
+      >
+        Download Apply Script (SQL)
+      </button>
       <div class="border-t border-zinc-100">
         <button
           type="button"

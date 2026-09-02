@@ -240,13 +240,6 @@ class DOMCache {
     return element ? element.classList.contains(className) : false;
   }
 
-  toggleClass(elementId, className) {
-    const element = this.get(elementId);
-    if (element) {
-      element.classList.toggle(className);
-    }
-  }
-
   show(elementId) {
     this.removeClass(elementId, 'hidden');
   }

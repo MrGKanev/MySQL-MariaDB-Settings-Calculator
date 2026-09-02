@@ -4,26 +4,9 @@ import { CONSTANTS, validateMemoryInputs, determineFlushMethod, getStorageOptimi
  * Recommendation message constants for better maintainability
  */
 const RECOMMENDATION_MESSAGES = {
-  // Memory allocation messages
-  LOW_MEMORY_ALLOCATION: "Consider allocating more memory to MySQL by reducing reserved memory or memory for other tasks. For dedicated database servers, 70-80% of total memory should be available for MySQL.",
-  REASONABLE_MEMORY_ALLOCATION: "Your memory allocation is reasonable, but could be optimized further for better performance.",
-
-  // Buffer pool messages
-  INCREASE_BUFFER_POOL: "Increase innodb_buffer_pool_size to 70-80% of available memory for dedicated database servers, or 60-70% for shared servers. This is the most critical MySQL performance setting.",
-  DECREASE_BUFFER_POOL: "Your innodb_buffer_pool_size may be too large. Consider reducing it to 75-80% of available memory to leave space for other MySQL operations and OS processes.",
-
   // Log file messages
   INCREASE_LOG_FILE: "Increase innodb_log_file_size to about 25% of your buffer pool size. This improves write performance by reducing checkpoint frequency.",
   DECREASE_LOG_FILE: "Your innodb_log_file_size may be too large relative to buffer pool size. Consider reducing it to 20-25% of buffer pool size.",
-
-  // Connection messages
-  TOO_MANY_CONNECTIONS: "Your max_connections setting may be too high for available memory. Each connection uses memory; consider reducing connections or implementing connection pooling.",
-  ADJUST_CONNECTIONS: "Consider adjusting max_connections based on your actual concurrent user requirements and available memory.",
-
-  // I/O settings messages
-  INCREASE_IO_CAPACITY: "Consider increasing innodb_io_capacity based on your storage capabilities. SSDs can typically handle 200+ IOPS per GB, NVMe drives even more.",
-  INCREASE_IO_THREADS: "Increase innodb_read_io_threads and innodb_write_io_threads to at least 4 each for better I/O performance on modern hardware.",
-  USE_MULTIPLE_BUFFER_POOL_INSTANCES: "Consider using multiple innodb_buffer_pool_instances (typically 1 instance per 1-2 GB of buffer pool) to reduce contention on larger servers.",
 
   // Server-specific messages
   LARGE_SERVER_BUFFER_POOL: "For servers with 16GB+ RAM dedicated primarily to MySQL, consider allocating 70-80% of memory to innodb_buffer_pool_size for optimal performance.",
@@ -674,29 +657,6 @@ export class MySQLCalculator {
   }
 
   /**
-   * Get memory allocation recommendation based on ratio
-   */
-  getMemoryAllocationRecommendation(memoryRatio) {
-    if (memoryRatio < 0.6) {
-      return RECOMMENDATION_MESSAGES.LOW_MEMORY_ALLOCATION;
-    }
-    return RECOMMENDATION_MESSAGES.REASONABLE_MEMORY_ALLOCATION;
-  }
-
-  /**
-   * Get buffer pool size recommendation
-   */
-  getBufferPoolRecommendation(bufferPoolRatio) {
-    if (bufferPoolRatio < 0.6) {
-      return RECOMMENDATION_MESSAGES.INCREASE_BUFFER_POOL;
-    }
-    if (bufferPoolRatio > 0.85) {
-      return RECOMMENDATION_MESSAGES.DECREASE_BUFFER_POOL;
-    }
-    return null;
-  }
-
-  /**
    * Get log file size recommendation
    */
   getLogFileSizeRecommendation(logFileRatio) {
@@ -707,40 +667,6 @@ export class MySQLCalculator {
       return RECOMMENDATION_MESSAGES.DECREASE_LOG_FILE;
     }
     return null;
-  }
-
-  /**
-   * Get connections recommendation
-   */
-  getConnectionsRecommendation(connectionsPerGB) {
-    if (connectionsPerGB > 150) {
-      return RECOMMENDATION_MESSAGES.TOO_MANY_CONNECTIONS;
-    }
-    return RECOMMENDATION_MESSAGES.ADJUST_CONNECTIONS;
-  }
-
-  /**
-   * Get I/O settings recommendations
-   */
-  getIOSettingsRecommendations(calculations, availableMemory, totalMemory) {
-    const recommendations = [];
-
-    if (calculations.innodb_io_capacity < availableMemory * 50) {
-      recommendations.push(RECOMMENDATION_MESSAGES.INCREASE_IO_CAPACITY);
-    }
-
-    if (calculations.innodb_read_io_threads < 4 || calculations.innodb_write_io_threads < 4) {
-      recommendations.push(RECOMMENDATION_MESSAGES.INCREASE_IO_THREADS);
-    }
-
-    // Only recommend multiple instances if buffer pool is large enough (> 1GB)
-    // This matches the logic in calculateBufferPoolInstances
-    const bufferPoolGB = convertBytesToGB(calculations.innodb_buffer_pool_size);
-    if (calculations.innodb_buffer_pool_instances === 1 && totalMemory >= 8 && bufferPoolGB > 1) {
-      recommendations.push(RECOMMENDATION_MESSAGES.USE_MULTIPLE_BUFFER_POOL_INSTANCES);
-    }
-
-    return recommendations;
   }
 
   /**
