@@ -11,6 +11,9 @@ A web-based tool for generating optimized database configurations based on your 
 ## Features
 
 - **MySQL / MariaDB** and **PostgreSQL** — two separate SEO-indexed pages
+- Version-specific exports: MySQL 8.0/8.4; MariaDB 10.6/10.11/11.4/11.8/12.3; PostgreSQL 14–18
+- MariaDB 10.6 is retained for existing servers and marked as past community support; PostgreSQL defaults to 18
+- Selected database version is preserved in shared URLs and container exports
 - Memory-based calculations with OS and application memory reservation
 - Workload templates: OLTP, OLAP, Mixed, Web Application, Small VPS
 - Performance score with per-category breakdown and recommendations
@@ -20,6 +23,8 @@ A web-based tool for generating optimized database configurations based on your 
 - Accessible: keyboard navigation, screen reader support, WCAG AA contrast
 
 ## Getting Started
+
+Requires Node.js 22.12.0 or newer and pnpm 12.8.1 (pinned in `package.json`).
 
 ```bash
 pnpm install
@@ -35,6 +40,33 @@ Open http://localhost:4321 in your browser.
 | `pnpm dev`     | Start dev server with hot reload     |
 | `pnpm build`   | Build for production -> `dist/`      |
 | `pnpm preview` | Preview the production build locally |
+| `pnpm test` | Run configuration regression tests |
+| `pnpm test:database` | Validate against official database images (requires Docker) |
+
+## Configuration validation
+
+`pnpm test` checks version-specific settings, SQL size syntax, container image tags,
+shared URL round-trips, and every workload template at memory/storage boundaries.
+These tests also run before the production build in GitHub Actions.
+
+`pnpm test:database` pulls official MySQL, MariaDB, and PostgreSQL images and uses
+isolated, temporary containers without publishing ports or accessing existing databases.
+It parses `my.cnf` with every supported MySQL/MariaDB server, executes the generated
+`SET GLOBAL` scripts, and starts each PostgreSQL version with the generated
+`postgresql.conf` and `pg_hba.conf` before executing its `ALTER SYSTEM` script.
+This verifies configuration acceptance and SQL execution, not workload performance.
+
+Docker Compose exports use the selected database version. MySQL/MariaDB exports
+require the matching `my.cnf` export beside the Compose file; official images do not
+apply arbitrary tuning settings supplied as environment variables. PostgreSQL
+exports pass the calculated memory, connection, and I/O settings as command arguments.
+
+Version compatibility references:
+- [MariaDB maintenance policy](https://mariadb.org/about/)
+- [MariaDB 10.6 removed options](https://mariadb.com/docs/server/server-management/install-and-upgrade-mariadb/upgrading/mariadb-community-server-upgrade-paths/upgrading-from-mariadb-10-5-to-mariadb-10-6)
+- [MariaDB InnoDB flushing](https://mariadb.com/docs/server/server-usage/storage-engines/innodb/innodb-flush-method)
+- [PostgreSQL version policy](https://www.postgresql.org/support/versioning/)
+- [PostgreSQL 18 connection logging](https://www.postgresql.org/docs/18/runtime-config-logging.html)
 
 ## Calculation Methods
 

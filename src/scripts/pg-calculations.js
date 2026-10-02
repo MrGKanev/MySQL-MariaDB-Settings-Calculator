@@ -1,3 +1,4 @@
+import { getPostgresqlVersion } from './database-versions.js';
 import { POSTGRESQL_CONSTANTS, validateMemoryInputs, convertGBToBytes, convertBytesToGB, clamp } from './utils.js';
 
 /**
@@ -204,7 +205,7 @@ export class PostgreSQLCalculator {
       // Logging defaults
       log_min_duration_statement: 1000,
       log_checkpoints: 'on',
-      log_connections: 'on',
+      log_connections: Number(getPostgresqlVersion(inputs)) >= 18 ? 'all' : 'on',
       log_disconnections: 'on',
       log_lock_waits: 'on',
       log_temp_files: 0,
