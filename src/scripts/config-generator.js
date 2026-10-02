@@ -1,3 +1,4 @@
+import { normalizeSoftware, getPostgresqlVersion, getMySQLSettingName, getMariaDBFlushSettings } from './database-versions.js';
 import { formatBytesMySQL, formatBytesPostgreSQL } from './utils.js';
 
 /**
@@ -120,8 +121,6 @@ export class ConfigGenerator {
     const isMySQL84plus = !isMariaDB && (verMajor > 8 || (verMajor === 8 && verMinor >= 4));
     // MariaDB 10.6+ supports binlog_expire_logs_seconds
     const isMariaDB106plus = isMariaDB && (verMajor > 10 || (verMajor === 10 && verMinor >= 6));
-    // MariaDB 10.11+ supports replica_* aliases
-    const isMariaDB1011plus = isMariaDB && (verMajor > 10 || (verMajor === 10 && verMinor >= 11));
 
     const fmt = formatBytesMySQL;
     const lines = ['[mysqld]'];
@@ -146,7 +145,7 @@ export class ConfigGenerator {
     // Memory settings
     lines.push('# Memory Settings');
     lines.push(`innodb_buffer_pool_size        = ${fmt(calculations.innodb_buffer_pool_size)}`);
-    lines.push(`innodb_buffer_pool_instances   = ${calculations.innodb_buffer_pool_instances}`);
+    if (getMySQLSettingName('innodb_buffer_pool_instances', inputs)) lines.push(`innodb_buffer_pool_instances   = ${calculations.innodb_buffer_pool_instances}`);
     lines.push(`key_buffer_size                = ${fmt(calculations.key_buffer_size)}`);
 
     // Query cache: removed in MySQL 8.0+, still available in MariaDB
@@ -213,21 +212,24 @@ export class ConfigGenerator {
 
     lines.push(`innodb_log_buffer_size         = ${fmt(calculations.innodb_log_buffer_size)}`);
     lines.push(`innodb_flush_log_at_trx_commit = ${calculations.innodb_flush_log_at_trx_commit}`);
-    lines.push(`innodb_flush_method            = ${calculations.innodb_flush_method}`);
+    if (getMySQLSettingName('innodb_flush_method', inputs)) lines.push(`innodb_flush_method            = ${calculations.innodb_flush_method}`);
+    for (const [name, value] of Object.entries(getMariaDBFlushSettings(inputs))) {
+      lines.push(`${name} = ${value}`);
+    }
     lines.push(`innodb_file_per_table          = ${calculations.innodb_file_per_table}`);
     lines.push(`innodb_io_capacity             = ${calculations.innodb_io_capacity}`);
     lines.push(`innodb_io_capacity_max         = ${calculations.innodb_io_capacity_max}`);
     lines.push(`innodb_read_io_threads         = ${calculations.innodb_read_io_threads}`);
     lines.push(`innodb_write_io_threads        = ${calculations.innodb_write_io_threads}`);
-    lines.push(`innodb_thread_concurrency      = ${calculations.innodb_thread_concurrency}`);
-    lines.push(`innodb_page_cleaners           = ${calculations.innodb_page_cleaners}`);
+    if (getMySQLSettingName('innodb_thread_concurrency', inputs)) lines.push(`innodb_thread_concurrency      = ${calculations.innodb_thread_concurrency}`);
+    if (getMySQLSettingName('innodb_page_cleaners', inputs)) lines.push(`innodb_page_cleaners           = ${calculations.innodb_page_cleaners}`);
     lines.push(`innodb_purge_threads           = ${calculations.innodb_purge_threads}`);
     lines.push('innodb_strict_mode             = 1');
     lines.push('innodb_stats_on_metadata       = 0');
     lines.push('innodb_adaptive_flushing       = 1');
     lines.push(`innodb_flush_neighbors         = ${calculations.innodb_flush_neighbors}`);
     lines.push(`innodb_adaptive_hash_index     = ${calculations.innodb_adaptive_hash_index}`);
-    lines.push(`innodb_change_buffering        = ${calculations.innodb_change_buffering}`);
+    if (getMySQLSettingName('innodb_change_buffering', inputs)) lines.push(`innodb_change_buffering        = ${calculations.innodb_change_buffering}`);
     lines.push(`innodb_doublewrite             = ${calculations.innodb_doublewrite}`);
     lines.push('innodb_buffer_pool_dump_at_shutdown = 1');
     lines.push('innodb_buffer_pool_load_at_startup  = 1');
@@ -246,8 +248,8 @@ export class ConfigGenerator {
       lines.push('slow_query_log_file            = /var/log/mysql/mysql-slow.log');
       lines.push('long_query_time                = 2');
       lines.push('log_slow_admin_statements      = ON');
-      // MySQL 8.0.23+ renamed slave→replica; MariaDB 10.11+ also supports replica_*
-      if (isMySQL84plus || isMariaDB1011plus) {
+      // MariaDB retains slave_* names; MySQL 8.4 uses replica_*.
+      if (!isMariaDB) {
         lines.push('log_slow_replica_statements    = ON');
       } else {
         lines.push('log_slow_slave_statements      = ON');
@@ -261,7 +263,7 @@ export class ConfigGenerator {
       lines.push('server-id                      = 1');
       lines.push('log_bin                        = /var/log/mysql/mysql-bin.log');
       // MySQL 8.0.29+ and MariaDB 10.6+ use binlog_expire_logs_seconds
-      if (isMySQL84plus || isMariaDB106plus) {
+      if (!isMariaDB || isMariaDB106plus) {
         lines.push('binlog_expire_logs_seconds     = 864000');
       } else {
         lines.push('expire_logs_days               = 10');
@@ -269,13 +271,9 @@ export class ConfigGenerator {
       lines.push('max_binlog_size                = 100M');
       lines.push('binlog_format                  = ROW');
       if (isMariaDB) {
-        // MariaDB parallel replication: replica_* from 10.11+, slave_* for older
+        // MariaDB uses slave_parallel_threads, including current LTS releases.
         const parallelThreads = Math.min(4, Math.ceil(calculations.max_connections / 25));
-        if (isMariaDB1011plus) {
-          lines.push(`replica_parallel_threads       = ${parallelThreads}`);
-        } else {
-          lines.push(`slave_parallel_threads         = ${parallelThreads}`);
-        }
+        lines.push(`slave_parallel_threads         = ${parallelThreads}`);
       }
       lines.push('');
     }
@@ -328,7 +326,7 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
 
     // Header
     if (includeComments) {
-      sections.push(`# PostgreSQL Configuration File
+      sections.push(`# PostgreSQL ${getPostgresqlVersion(inputs)} Configuration File
 # Generated by Database Settings Calculator
 # Generated on: ${new Date().toISOString().split('T')[0]}
 #
@@ -519,7 +517,7 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
    */
   generateDockerComposeConfig(results, options = {}) {
     const { calculations } = results;
-    const { databaseType = 'mysql' } = options;
+    const { databaseType = results.inputs.dbType || 'mysql' } = options;
 
     if (databaseType === 'postgresql') {
       const fmt = formatBytesPostgreSQL;
@@ -527,7 +525,7 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
         `# Docker Compose PostgreSQL Configuration`,
         `services:`,
         `  postgres:`,
-        `    image: postgres:16-alpine`,
+        `    image: postgres:${getPostgresqlVersion(results.inputs)}-alpine`,
         `    environment:`,
         `      POSTGRES_PASSWORD: changeme`,
         `    command:`,
@@ -558,24 +556,24 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
       ].join('\n');
     }
 
-    const { serviceName = 'mysql' } = options;
-    const fmt = formatBytesMySQL;
+    const { serviceName = results.inputs.dbEngine === 'mariadb' ? 'mariadb' : 'mysql' } = options;
+    const engine = results.inputs.dbEngine === 'mariadb' ? 'mariadb' : 'mysql';
+    const software = normalizeSoftware(`${engine}-${results.inputs.dbVersion || '8.0'}`);
+    const [, version] = software.split('-');
     return [
-      `# Docker Compose MySQL Configuration`,
-      `# Add these environment variables to your ${serviceName} service`,
-      ``,
-      `environment:`,
-      `  MYSQL_INNODB_BUFFER_POOL_SIZE: "${fmt(calculations.innodb_buffer_pool_size)}"`,
-      `  MYSQL_INNODB_LOG_FILE_SIZE: "${fmt(calculations.innodb_log_file_size)}"`,
-      `  MYSQL_MAX_CONNECTIONS: "${calculations.max_connections}"`,
-      `  MYSQL_KEY_BUFFER_SIZE: "${fmt(calculations.key_buffer_size)}"`,
-      `  MYSQL_TMP_TABLE_SIZE: "${fmt(calculations.tmp_table_size)}"`,
-      `  MYSQL_SORT_BUFFER_SIZE: "${fmt(calculations.sort_buffer_size)}"`,
-      `  MYSQL_INNODB_IO_CAPACITY: "${calculations.innodb_io_capacity}"`,
-      ``,
-      `# Or mount a custom my.cnf file:`,
-      `volumes:`,
-      `  - ./my.cnf:/etc/mysql/my.cnf`
+      `# Docker Compose ${engine === 'mariadb' ? 'MariaDB' : 'MySQL'} Configuration`,
+      `# Save the matching my.cnf export beside this file.`,
+      `services:`,
+      `  ${serviceName}:`,
+      `    image: ${engine}:${version}`,
+      `    command:`,
+      `      - "--log-error=/var/lib/mysql/error.log"`,
+      `      - "--slow-query-log-file=/var/lib/mysql/slow.log"`,
+      `      - "--log-bin=/var/lib/mysql/mysql-bin"`,
+      `    environment:`,
+      `      ${engine === 'mariadb' ? 'MARIADB' : 'MYSQL'}_ROOT_PASSWORD: changeme`,
+      `    volumes:`,
+      `      - ./my.cnf:/etc/mysql/conf.d/calculator.cnf:ro`
     ].join('\n');
   }
 
@@ -583,7 +581,7 @@ max_allowed_packet             = ${calculations.max_allowed_packet}`;
    * Generate Kubernetes ConfigMap
    */
   generateKubernetesConfig(results, options = {}) {
-    const { databaseType = 'mysql' } = options;
+    const { databaseType = results.inputs.dbType || 'mysql' } = options;
 
     if (databaseType === 'postgresql') {
       const { configMapName = 'postgresql-config', namespace = 'default' } = options;
@@ -608,7 +606,7 @@ ${pgConfContent.split('\n').map(line => '    ' + line).join('\n')}
 #       name: ${configMapName}
 # containers:
 #   - name: postgresql
-#     image: postgres:16-alpine
+#     image: postgres:${getPostgresqlVersion(results.inputs)}-alpine
 #     volumeMounts:
 #       - name: postgresql-config
 #         mountPath: /etc/postgresql/postgresql.conf
@@ -649,9 +647,15 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
    */
   formatSqlValue(value, type, byteFormatter) {
     switch (type) {
-      case 'bytes': return byteFormatter(value);
-      case 'string': return `'${value}'`;
-      default: return String(value);
+      case 'bytes': {
+        if (byteFormatter !== formatBytesMySQL) return `'${byteFormatter(value)}'`;
+        if (typeof value === 'number') return String(value);
+        const match = String(value).match(/^(\d+)([KMG]?)$/i);
+        if (!match) throw new Error(`Invalid MySQL byte size: ${value}`);
+        return String(Number(match[1]) * 1024 ** ('KMG'.indexOf(match[2].toUpperCase()) + 1));
+      }
+      case 'string': return `'${String(value).replaceAll("'", "''")}'`;
+      default: return typeof value === 'string' ? `'${value.replaceAll("'", "''")}'` : String(value);
     }
   }
 
@@ -673,7 +677,7 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
       ['table_definition_cache', 'table_definition_cache', 'raw', true],
       ['table_open_cache', 'table_open_cache', 'raw', true],
       ['max_connections', 'max_connections', 'raw', true],
-      ['max_allowed_packet', 'max_allowed_packet', 'raw', true],
+      ['max_allowed_packet', 'max_allowed_packet', 'bytes', true],
       ['thread_cache_size', 'thread_cache_size', 'raw', true],
       ['innodb_flush_log_at_trx_commit', 'innodb_flush_log_at_trx_commit', 'raw', true],
       ['innodb_file_per_table', 'innodb_file_per_table', 'raw', true],
@@ -736,7 +740,7 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
    * Generate a script that applies the calculated settings to a running server
    */
   generateApplyScript(results, options = {}) {
-    const { databaseType = 'mysql' } = options;
+    const { databaseType = results.inputs.dbType || 'mysql' } = options;
     return databaseType === 'postgresql'
       ? this.generatePostgreSQLApplyScript(results)
       : this.generateMySQLApplyScript(results);
@@ -748,7 +752,13 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
   generateMySQLApplyScript(results) {
     const { inputs, calculations } = results;
     const isMariaDB = (inputs.dbEngine || 'mysql') === 'mariadb';
-    const settings = this.mysqlApplySettings;
+    const settings = this.mysqlApplySettings.flatMap(([key, calcKey, type, live]) => {
+      const name = getMySQLSettingName(key, inputs);
+      if (!name) return [];
+      const dynamicRedo = name === 'innodb_redo_log_capacity' ||
+        (isMariaDB && inputs.dbVersion !== '10.6' && name === 'innodb_log_file_size');
+      return [[name, calcKey, type, dynamicRedo || live]];
+    });
 
     const lines = [
       '-- Runtime configuration script (SET GLOBAL)',
@@ -768,6 +778,10 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
         if (value === undefined) return;
         lines.push(`SET GLOBAL ${configKey} = ${this.formatSqlValue(value, type, formatBytesMySQL)};`);
       });
+
+    for (const [name, value] of Object.entries(getMariaDBFlushSettings(inputs))) {
+      lines.push(`SET GLOBAL ${name} = ${value};`);
+    }
 
     if (isMariaDB && calculations.query_cache_size !== undefined) {
       lines.push(`SET GLOBAL query_cache_size = ${this.formatSqlValue(calculations.query_cache_size, 'bytes', formatBytesMySQL)};`);
@@ -826,6 +840,7 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
    * Export configuration to file
    */
   async exportToFile(results, format = 'my.cnf', filename = null, options = {}) {
+    options = { databaseType: results.inputs.dbType || 'mysql', ...options };
     const config = this.generateConfig(results, format, options);
     
     if (!filename) {
@@ -893,6 +908,8 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
       generated: Date.now()
     });
 
+    params.set('dbSoftware', normalizeSoftware(`${inputs.dbEngine || inputs.dbType || 'mysql'}-${inputs.dbVersion || 'current'}`, inputs.dbType));
+
     if (inputs.dbType && inputs.dbType !== 'mysql') {
       params.set('dbType', inputs.dbType);
     }
@@ -939,7 +956,8 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
       osType,
       storageType,
       template,
-      dbType
+      dbType,
+      dbSoftware: normalizeSoftware(params.get('dbSoftware'), dbType)
     };
   }
 
@@ -1042,7 +1060,7 @@ ${myCnfContent.split('\n').map(line => '    ' + line).join('\n')}
     }
 
     // Check for potentially problematic settings
-    if (config.includes('innodb_buffer_pool_size') && 
+    if (!config.includes('aria_pagecache_buffer_size') && config.includes('innodb_buffer_pool_size') &&
         !config.includes('innodb_buffer_pool_instances')) {
       warnings.push('Consider setting innodb_buffer_pool_instances for large buffer pools');
     }

@@ -5,9 +5,9 @@ allowBuilds:
   esbuild: true
   sharp: true
 
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
+minimumReleaseAgeExclude:
+  - vite@8.3.2
 
 overrides:
-  esbuild: ">=0.28.1"
+  esbuild: "^0.28.2"
+  vite: "^8.3.2"

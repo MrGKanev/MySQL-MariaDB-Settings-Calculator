@@ -1,3 +1,4 @@
+import { normalizeSoftware, getPostgresqlVersion, getMySQLSettingName, MYSQL_DEFAULT_SOFTWARE, POSTGRESQL_DEFAULT_SOFTWARE } from './database-versions.js';
 import { domCache } from './dom-cache.js';
 import { formatBytes, debounce } from './utils.js';
 import { mysqlCalculator } from './calculations.js';
@@ -614,7 +615,7 @@ export class UIManager {
    * Collect all input values from the form
    */
   collectInputs() {
-    const dbSoftware = domCache.getValue('dbSoftware') || 'mysql-8.0';
+    const dbSoftware = normalizeSoftware(domCache.getValue('dbSoftware'), this.currentDbType);
     const [dbEngine, dbVersion] = dbSoftware.split('-');
     return {
       totalMemory: parseFloat(domCache.getValue('totalMemory')) || 16,
@@ -624,8 +625,8 @@ export class UIManager {
       storageType: domCache.getValue('storageType') || 'ssd',
       template: domCache.getValue('workloadTemplate') || 'custom',
       dbType: this.currentDbType,
-      dbEngine,   // 'mysql' | 'mariadb'
-      dbVersion   // '8.0' | '8.4' | '10.6' | '10.11' | '11.4'
+      dbEngine,
+      dbVersion
     };
   }
 
@@ -708,7 +709,7 @@ export class UIManager {
     const settingsGrid = document.createElement('div');
     settingsGrid.className = 'grid grid-cols-2 gap-2';
     if (this.currentDbType === 'postgresql') {
-      this.appendPostgreSQLSettingsRows(settingsGrid, calculations);
+      this.appendPostgreSQLSettingsRows(settingsGrid, calculations, inputs);
     } else {
       this.appendMySQLSettingsRows(settingsGrid, calculations, inputs);
     }
@@ -760,6 +761,8 @@ export class UIManager {
     ]);
 
     for (const [setting, docPath] of settings) {
+      const configName = getMySQLSettingName(setting, inputs);
+      if (!configName) continue;
       const value = calculations[setting];
       const formattedValue = typeof value === 'number' && byteSettings.has(setting)
         ? formatBytes(value)
@@ -767,7 +770,11 @@ export class UIManager {
 
       const { dbEngine, dbVersion } = inputs;
       const mysqlVersion = dbEngine === 'mysql' ? (dbVersion || '8.0') : '8.0';
-      const docUrl = `https://dev.mysql.com/doc/refman/${mysqlVersion}/en/${docPath}`;
+      const docUrl = dbEngine === 'mariadb'
+        ? (configName.startsWith('innodb_')
+          ? `https://mariadb.com/docs/server/server-usage/storage-engines/innodb/innodb-system-variables#${configName}`
+          : `https://mariadb.com/docs/server/server-management/variables-and-modes/server-system-variables#${configName}`)
+        : `https://dev.mysql.com/doc/refman/${mysqlVersion}/en/${docPath.replaceAll(setting, configName)}`;
 
       const labelDiv = document.createElement('div');
       const link = document.createElement('a');
@@ -775,7 +782,7 @@ export class UIManager {
       link.target = '_blank';
       link.rel = 'noopener';
       link.className = 'text-blue-500 hover:underline';
-      link.textContent = setting;
+      link.textContent = configName;
       labelDiv.appendChild(link);
       labelDiv.append(' =');
 
@@ -790,7 +797,7 @@ export class UIManager {
   /**
    * Append PostgreSQL setting rows into a grid container
    */
-  appendPostgreSQLSettingsRows(container, calculations) {
+  appendPostgreSQLSettingsRows(container, calculations, inputs) {
     const settings = [
       ['shared_buffers', 'runtime-config-resource.html#GUC-SHARED-BUFFERS'],
       ['effective_cache_size', 'runtime-config-query.html#GUC-EFFECTIVE-CACHE-SIZE'],
@@ -824,7 +831,7 @@ export class UIManager {
         ? formatBytes(value)
         : value;
 
-      const docUrl = `https://www.postgresql.org/docs/current/${docPath}`;
+      const docUrl = `https://www.postgresql.org/docs/${getPostgresqlVersion(inputs)}/${docPath}`;
 
       const labelDiv = document.createElement('div');
       const link = document.createElement('a');
@@ -1181,6 +1188,8 @@ export class UIManager {
     const config = configGenerator.loadFromURL();
     if (!config) return;
 
+    config.dbSoftware = normalizeSoftware(config.dbSoftware, this.currentDbType);
+
     // Populate inputs
     Object.entries(config).forEach(([key, value]) => {
       if (key === 'dbType' || key === 'template') return;
@@ -1307,6 +1316,7 @@ export class UIManager {
    * Reset form to default values
    */
   resetForm() {
+    domCache.setValue('dbSoftware', this.currentDbType === 'postgresql' ? POSTGRESQL_DEFAULT_SOFTWARE : MYSQL_DEFAULT_SOFTWARE);
     domCache.setValue('totalMemory', 16);
     domCache.setValue('totalMemorySlider', 16);
     domCache.setValue('reservedMemory', 0);
